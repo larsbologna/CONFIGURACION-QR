@@ -13,6 +13,7 @@ const businesses = require('../services/businesses');
 const destinations = require('../services/destinations');
 const render = require('../services/render');
 const pkg = require('../services/package');
+const publish = require('../services/publish');
 const { stats } = require('../services/stats');
 const backup = require('../services/backup');
 
@@ -86,6 +87,28 @@ function apiRoutes(db, config) {
   r.use(auth.requireApiAuth);
   r.use(express.json({ limit: '1mb' }));
 
+  // Modo GitHub Pages: después de cada cambio exitoso se regeneran las páginas estáticas.
+  if (config.staticDir) {
+    r.use((req, res, next) => {
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+        res.on('finish', () => {
+          if (res.statusCode < 400) {
+            try { publish.publishStatic(db, config); } catch (e) { console.error('Error al regenerar páginas:', e.message); }
+          }
+        });
+      }
+      next();
+    });
+  }
+
+  r.post('/publicar', wrap(async (req, res) => {
+    if (!config.staticDir) throw bad('El sistema no está en modo GitHub Pages (STATIC_DIR vacío)');
+    const st = publish.publishStatic(db, config);
+    const g = await publish.gitPublish(config, `Actualiza QR publicados (${new Date().toISOString().slice(0, 16).replace('T', ' ')})`);
+    audit(db, req.admin, 'publicar.github', { details: { ok: g.ok, nothing: Boolean(g.nothing), units: st.units } });
+    res.json({ ...g, units: st.units });
+  }));
+
   r.post('/logout', (req, res) => {
     auth.logout(db, req.sessionToken);
     audit(db, req.admin, 'logout');
@@ -102,6 +125,7 @@ function apiRoutes(db, config) {
       statuses: units.STATUSES,
       destination_types: destinations.TYPES,
       papers: render.PAPERS,
+      static_mode: Boolean(config.staticDir),
     });
   });
 

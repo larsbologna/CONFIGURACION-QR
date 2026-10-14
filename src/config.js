@@ -35,7 +35,7 @@ function loadConfig(overrides = {}) {
   const publicBaseUrl = normalizeBaseUrl(env.PUBLIC_BASE_URL || `http://localhost:${env.PORT || 3000}`);
   const cookieSecure = env.COOKIE_SECURE && env.COOKIE_SECURE !== 'auto'
     ? bool(env.COOKIE_SECURE, false)
-    : publicBaseUrl.startsWith('https://');
+    : publicBaseUrl.startsWith('https://') && !env.STATIC_DIR; // con GitHub Pages el panel corre local por http
   return {
     root: ROOT,
     port: Number(env.PORT || 3000),
@@ -52,6 +52,8 @@ function loadConfig(overrides = {}) {
     allowHttpDestinations: bool(env.ALLOW_HTTP_DESTINATIONS, false),
     maxBatch: Number(env.MAX_BATCH || 5000),
     fontFile: path.join(ROOT, 'assets', 'fonts', 'DejaVuSans-Bold.ttf'),
+    // Carpeta publicada por GitHub Pages (ej. "docs"). Vacía = modo servidor.
+    staticDir: env.STATIC_DIR ? path.resolve(ROOT, env.STATIC_DIR) : null,
   };
 }
 

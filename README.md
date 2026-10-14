@@ -7,6 +7,34 @@ plástico (10 × 15 cm), exportar archivos listos para imprimir y administrar de
 - **Imágenes:** sharp (PNG), PDFKit (PDF vectorial), qrcode (generación), jsQR (lectura y verificación).
 - **Interfaz:** HTML + JavaScript sin paso de compilación, en `public/`.
 
+
+## Modo GitHub Pages (el que usa este proyecto)
+
+Los QR apuntan a **`https://larsbologna.github.io/CONFIGURACION-QR/q/<código>`**. Como GitHub Pages no ejecuta un
+servidor, el panel escribe una página por QR en `docs/q/<código>.html` que redirige al destino configurado.
+
+**Activar GitHub Pages (una sola vez):** en GitHub → repo *CONFIGURACION-QR* → **Settings → Pages** →
+*Source: Deploy from a branch* → rama **main**, carpeta **/docs** → *Save*. (Los cambios tienen que estar en `main`.)
+
+**Uso diario:**
+1. En tu PC: `npm start` y entrá a <http://localhost:3000/admin/> (el panel solo corre en tu PC).
+2. Cambiá destinos o estados desde el panel. Las páginas de `docs/` se regeneran solas.
+3. Tocá **“Publicar en GitHub”** (arriba a la derecha). Si no puede subir solo, abrí GitHub Desktop y hacé *Push*.
+   GitHub tarda entre 1 y 10 minutos en actualizar.
+
+`docs/registro.json` guarda los números, códigos, lotes, estados y destinos (no tiene datos de clientes ni
+contraseñas). Si instalás el panel en otra PC, al arrancar lo importa solo y la numeración sigue donde iba: **nunca
+se repite un número**. Usá el panel desde una sola PC a la vez.
+
+Limitaciones de GitHub Pages: no se pueden contar escaneos (las estadísticas quedan en cero) y un cambio de destino
+tarda unos minutos en verse. **No borres ni renombres el repo**: los QR fabricados dejarían de funcionar.
+
+### Primer lote ya generado: LOTE-2026-001 (001, 002, 003)
+En `entregas/LOTE-2026-001/` está el paquete para el local (`PARA_EL_LOCAL_LOTE-2026-001.zip`), el PDF con los tres
+diseños a 100 × 150 mm y la ficha técnica. Diseño: `image_20261014_111225.jpg` (1280 × 1920 px, 325 ppp).
+Los tres QR fueron leídos desde los PNG, los PDF y el PDF combinado: son distintos y cada uno contiene la URL de su número.
+Todavía no tienen destino: muestran “todavía no está activado” hasta que les asignes uno y los pongas en *Activo*.
+
 ---
 
 ## 1. Instalación y ejecución en Windows
@@ -18,7 +46,7 @@ plástico (10 × 15 cm), exportar archivos listos para imprimir y administrar de
    ```powershell
    npm install
    ```
-5. Creá el archivo de configuración copiando el ejemplo:
+5. Creá el archivo de configuración copiando el ejemplo (ya trae el dominio de GitHub Pages):
    ```powershell
    copy .env.example .env
    notepad .env

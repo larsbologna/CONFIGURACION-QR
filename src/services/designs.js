@@ -10,18 +10,16 @@ const render = require('./render');
 
 const ASPECT_TOLERANCE = 0.01; // 1 %
 
-/**
- * Perfiles de plantilla. Las coordenadas están en mm sobre un plástico de
- * 100 × 150 mm. El perfil "resena-google-10x15" se midió sobre la imagen del
- * diseño enviada por el cliente (vista en la conversación, 2:3): son
- * ESTIMACIONES que se deben confirmar con "Detectar QR" y "Verificar".
- */
+/** Perfiles de plantilla. Coordenadas en mm sobre un plástico de 100 × 150 mm. */
 const PROFILES = {
   'resena-google-10x15': {
     name: 'Reseña Google 10×15 (QR central en tarjeta blanca, número abajo)',
+    // Medido en píxeles sobre image_20261014_111225.jpg (1280×1920 = 12,8 px/mm):
+    // QR original 377–905 × 986–1517 px; tarjeta blanca interior 343–940 × 952–1553 px;
+    // "Escanea con tu celular" termina en y = 128,3 mm y debajo no hay nada.
     config: {
-      qr: { x_mm: 28.1, y_mm: 75.7, size_mm: 44, margin_modules: 2, ecc: 'M', dark: '#000000', light: '#FFFFFF' },
-      cover: { enabled: true, x_mm: 29.0, y_mm: 76.6, w_mm: 42.1, h_mm: 42.2, color: '#FFFFFF', radius_mm: 0 },
+      qr: { x_mm: 28.08, y_mm: 75.77, size_mm: 44, margin_modules: 2, ecc: 'M', dark: '#000000', light: '#FFFFFF' },
+      cover: { enabled: true, x_mm: 29.2, y_mm: 76.8, w_mm: 41.8, h_mm: 42.0, color: '#FFFFFF', radius_mm: 0 },
       number: { enabled: true, x_mm: 35, y_mm: 133, w_mm: 30, h_mm: 7, font_pt: 14, color: '#3C4043', label: '', background: null },
     },
   },
