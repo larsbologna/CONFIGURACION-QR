@@ -79,7 +79,14 @@ async function init(pageFn) {
   top.append(
     el('div', { class: 'brand', text: 'Plásticos QR' }),
     el('nav', {}, NAV.map(([href, text]) => el('a', { href, text, class: here === href ? 'on' : null }))),
-    el('div', { class: 'user' }, el('span', { text: App.session.admin.username }),
+    el('div', { class: 'user' },
+      App.session.static_mode ? el('button', { class: 'small', type: 'button', text: 'Publicar en GitHub', title: 'Sube los cambios de destinos y estados a GitHub Pages', onclick: (e) => guard(async () => {
+        const r = await api('POST', '/api/publicar', {});
+        if (r.nothing) toast('No había cambios para publicar.');
+        else if (r.ok) toast('Publicado. GitHub Pages tarda 1 a 10 minutos en actualizar.');
+        else toast(`No se pudo subir automáticamente: ${r.steps.map((x) => x.out).join(' ').slice(0, 300)}. Abrí GitHub Desktop y hacé "Push".`, 'error', 15000);
+      }, e.target) }) : null,
+      el('span', { text: App.session.admin.username }),
       el('button', { class: 'small', type: 'button', text: 'Salir', onclick: async () => { await api('POST', '/api/logout', {}); location.href = '/login'; } })),
   );
   if (!App.session.public_base_url_is_production) {

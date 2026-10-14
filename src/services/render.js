@@ -214,7 +214,7 @@ function drawUnitPdf(doc, imgObj, version, unit, xMm, yMm, opts = {}) {
   const { els } = unitElements(version, unit, opts);
   doc.save();
   doc.translate(xMm * MM_TO_PT, yMm * MM_TO_PT);
-  doc.scale(MM_TO_PT);
+  doc.scale(MM_TO_PT * (opts.scale || 1)); // scale < 1 solo para miniaturas de referencia
   doc.image(imgObj, 0, 0, { width: version.width_mm, height: version.height_mm });
   for (const e of els) {
     if (e.type === 'rect') {
@@ -370,5 +370,5 @@ async function sheetPdf(uploadsDir, items, params, { title = 'Plancha' } = {}) {
 
 module.exports = {
   MM_TO_PT, PT_TO_MM, DEFAULT_CONFIG, PAPERS, withDefaults, qrMatrix, qrPath, textPath, textWidth,
-  numberAreaStatus, unitElements, unitPng, unitSvg, unitPdf, drawUnitPdf, sheetLayout, sheetPdf, dpiOf, readDesignImage,
+  numberAreaStatus, unitElements, unitPng, unitSvg, unitPdf, drawUnitPdf, sheetLayout, sheetPdf, dpiOf, readDesignImage, collect,
 };

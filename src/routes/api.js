@@ -2,6 +2,7 @@
 const express = require('express');
 const multer = require('multer');
 const archiver = require('archiver');
+const { isProductionBaseUrl } = require('../config');
 const { HttpError, bad, int, num, str, oneOf } = require('../util');
 const auth = require('../services/auth');
 const { audit } = require('../services/audit');
@@ -11,6 +12,8 @@ const units = require('../services/units');
 const businesses = require('../services/businesses');
 const destinations = require('../services/destinations');
 const render = require('../services/render');
+const pkg = require('../services/package');
+const publish = require('../services/publish');
 const { stats } = require('../services/stats');
 const backup = require('../services/backup');
 
@@ -84,6 +87,28 @@ function apiRoutes(db, config) {
   r.use(auth.requireApiAuth);
   r.use(express.json({ limit: '1mb' }));
 
+  // Modo GitHub Pages: después de cada cambio exitoso se regeneran las páginas estáticas.
+  if (config.staticDir) {
+    r.use((req, res, next) => {
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+        res.on('finish', () => {
+          if (res.statusCode < 400) {
+            try { publish.publishStatic(db, config); } catch (e) { console.error('Error al regenerar páginas:', e.message); }
+          }
+        });
+      }
+      next();
+    });
+  }
+
+  r.post('/publicar', wrap(async (req, res) => {
+    if (!config.staticDir) throw bad('El sistema no está en modo GitHub Pages (STATIC_DIR vacío)');
+    const st = publish.publishStatic(db, config);
+    const g = await publish.gitPublish(config, `Actualiza QR publicados (${new Date().toISOString().slice(0, 16).replace('T', ' ')})`);
+    audit(db, req.admin, 'publicar.github', { details: { ok: g.ok, nothing: Boolean(g.nothing), units: st.units } });
+    res.json({ ...g, units: st.units });
+  }));
+
   r.post('/logout', (req, res) => {
     auth.logout(db, req.sessionToken);
     audit(db, req.admin, 'logout');
@@ -100,6 +125,7 @@ function apiRoutes(db, config) {
       statuses: units.STATUSES,
       destination_types: destinations.TYPES,
       papers: render.PAPERS,
+      static_mode: Boolean(config.staticDir),
     });
   });
 
@@ -398,6 +424,38 @@ function apiRoutes(db, config) {
       if (want.png) zip.append(await render.unitPng(config.uploadsDir, it.version, u, { numberInDesign: it.numberInDesign }), { name: `png/${base}.png` });
       if (want.pdf) zip.append(await render.unitPdf(config.uploadsDir, it.version, u, { numberInDesign: it.numberInDesign }), { name: `pdf/${base}.pdf` });
       if (want.svg) zip.append(render.unitSvg(config.uploadsDir, it.version, u, { numberInDesign: it.numberInDesign }), { name: `svg/${base}.svg` });
+    }
+    await zip.finalize();
+  }));
+
+  // Paquete completo para mandar al local que fabrica los plásticos.
+  r.get('/export/local.zip', wrap(async (req, res) => {
+    const list = selectionUnits(req.query);
+    const items = list.map(itemFor);
+    const title = req.query.batch_id ? list[0].batch_code : `Unidades ${list[0].display_number}-${list[list.length - 1].display_number}`;
+    const isProduction = list.every((u) => isProductionBaseUrl(new URL(u.qr_url).origin));
+    const baseUrl = new URL(list[0].qr_url).origin;
+    const info = { title, baseUrl, isProduction };
+    let all; let ficha;
+    try {
+      all = await pkg.allDesignsPdf(config.uploadsDir, items, title);
+      ficha = await pkg.fichaPdf(config.uploadsDir, items, info);
+    } catch (e) { throw bad(e.message); }
+    audit(db, req.admin, 'exportar.paquete_local', { details: { title, units: list.length } });
+    res.attachment(`${isProduction ? '' : 'PRUEBA_'}PARA_EL_LOCAL_${safeName(title)}.zip`).type('zip');
+    const zip = archiver('zip', { zlib: { level: 6 } });
+    zip.on('error', (e) => res.destroy(e));
+    zip.pipe(res);
+    zip.append(pkg.leeme({ ...info, count: list.length, first: list[0].display_number, last: list[list.length - 1].display_number }), { name: 'LEEME.txt' });
+    zip.append(ficha, { name: 'FICHA_PARA_EL_LOCAL.pdf' });
+    zip.append(all, { name: 'TODOS_LOS_DISENOS_100x150mm.pdf' });
+    zip.append(unitsCsv(list), { name: 'listado.csv' });
+    for (const it of items) {
+      const base = `${safeName(it.unit.display_number)}_${safeName(it.unit.batch_code)}`;
+      const o = { numberInDesign: it.numberInDesign };
+      zip.append(await render.unitPdf(config.uploadsDir, it.version, it.unit, o), { name: `pdf/${base}.pdf` });
+      zip.append(await render.unitPng(config.uploadsDir, it.version, it.unit, o), { name: `png/${base}.png` });
+      zip.append(render.unitSvg(config.uploadsDir, it.version, it.unit, o), { name: `svg/${base}.svg` });
     }
     await zip.finalize();
   }));

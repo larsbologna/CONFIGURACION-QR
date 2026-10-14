@@ -1,0 +1,114 @@
+{
+ "formato": "registro-plasticos-qr",
+ "version": 1,
+ "actualizado": "2026-10-14T18:01:41.068Z",
+ "nota": "Registro público de unidades generadas. No contiene datos de clientes ni contraseñas. No editar a mano.",
+ "disenos": [
+  {
+   "id": 1,
+   "nombre": "Reseña Google 10×15",
+   "descripcion": "Diseño enviado al local de impresión (100 × 150 mm)",
+   "version": 1,
+   "imagen": "image_20261014_111225.jpg",
+   "imagen_sha256": "75c3d8de03a3858d878a5ed2fb2ba198c6f4d4b2f6c4efe9f1ff254939b7e7e7",
+   "ancho_px": 1280,
+   "alto_px": 1920,
+   "formato": "jpeg",
+   "ancho_mm": 100,
+   "alto_mm": 150,
+   "config": {
+    "qr": {
+     "x_mm": 28.08,
+     "y_mm": 75.77,
+     "size_mm": 44,
+     "margin_modules": 2,
+     "ecc": "M",
+     "dark": "#000000",
+     "light": "#FFFFFF"
+    },
+    "cover": {
+     "enabled": true,
+     "x_mm": 29.2,
+     "y_mm": 76.8,
+     "w_mm": 41.8,
+     "h_mm": 42,
+     "color": "#FFFFFF",
+     "radius_mm": 0
+    },
+    "number": {
+     "enabled": true,
+     "x_mm": 35,
+     "y_mm": 133,
+     "w_mm": 30,
+     "h_mm": 7,
+     "font_pt": 14,
+     "color": "#3C4043",
+     "label": "",
+     "background": null
+    }
+   },
+   "creado": "2026-10-14T18:01:38.066Z"
+  }
+ ],
+ "lotes": [
+  {
+   "id": 1,
+   "codigo": "LOTE-2026-001",
+   "diseno_id": 1,
+   "cantidad": 3,
+   "primer_serial": 1,
+   "ultimo_serial": 3,
+   "prefijo": "",
+   "digitos": 3,
+   "ubicacion": "ambos",
+   "numero_en_plancha": 1,
+   "numero_en_plastico": 1,
+   "dominio": "https://larsbologna.github.io/CONFIGURACION-QR",
+   "creado": "2026-10-14T18:01:41.063Z"
+  }
+ ],
+ "unidades": [
+  {
+   "serial": 1,
+   "numero": "001",
+   "id_publico": "aEWzGtTmzKDG",
+   "url": "https://larsbologna.github.io/CONFIGURACION-QR/q/aEWzGtTmzKDG",
+   "lote_id": 1,
+   "diseno_id": 1,
+   "creado": "2026-10-14T18:01:41.063Z",
+   "reemplaza_serial": null,
+   "estado": "generado",
+   "destino_tipo": null,
+   "destino_url": null,
+   "destino_config": null
+  },
+  {
+   "serial": 2,
+   "numero": "002",
+   "id_publico": "MFQAJJvAawWk",
+   "url": "https://larsbologna.github.io/CONFIGURACION-QR/q/MFQAJJvAawWk",
+   "lote_id": 1,
+   "diseno_id": 1,
+   "creado": "2026-10-14T18:01:41.063Z",
+   "reemplaza_serial": null,
+   "estado": "generado",
+   "destino_tipo": null,
+   "destino_url": null,
+   "destino_config": null
+  },
+  {
+   "serial": 3,
+   "numero": "003",
+   "id_publico": "Z6iu8wKJoA8V",
+   "url": "https://larsbologna.github.io/CONFIGURACION-QR/q/Z6iu8wKJoA8V",
+   "lote_id": 1,
+   "diseno_id": 1,
+   "creado": "2026-10-14T18:01:41.063Z",
+   "reemplaza_serial": null,
+   "estado": "generado",
+   "destino_tipo": null,
+   "destino_url": null,
+   "destino_config": null
+  }
+ ]
+}

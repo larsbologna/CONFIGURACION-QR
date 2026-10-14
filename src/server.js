@@ -3,8 +3,10 @@ const { loadConfig } = require('./config');
 const { createApp } = require('./app');
 
 const config = loadConfig();
-const { app, db, appliedMigrations } = createApp(config);
+const { app, db, appliedMigrations, imported } = createApp(config);
 if (appliedMigrations.length) console.log(`Migraciones aplicadas: ${appliedMigrations.join(', ')}`);
+if (imported && !imported.error) console.log(`Registro importado de ${config.staticDir}: ${imported.units} unidades, ${imported.batches} lotes.`);
+if (config.staticDir) console.log(`Modo GitHub Pages: las páginas de los QR se escriben en ${config.staticDir}. Después de cambios, tocá "Publicar en GitHub".`);
 
 const server = app.listen(config.port, config.host, () => {
   console.log(`Panel: http://${config.host === '0.0.0.0' ? 'localhost' : config.host}:${config.port}/admin/`);
