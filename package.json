@@ -1,0 +1,40 @@
+{
+  "name": "plasticos-qr",
+  "version": "1.0.0",
+  "description": "Sistema de gestión, numeración e impresión de plásticos QR",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/server.js",
+    "crear-admin": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/crear-admin.js",
+    "backup": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/backup.js",
+    "migrar": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/migrar.js",
+    "prueba-diseno": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/prueba-diseno.js",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 \"test/*.test.js\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/larsbologna/CONFIGURACION-QR.git"
+  },
+  "bugs": {
+    "url": "https://github.com/larsbologna/CONFIGURACION-QR/issues"
+  },
+  "homepage": "https://github.com/larsbologna/CONFIGURACION-QR#readme",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "express": "^4.22.3",
+    "fontkit": "^2.0.4",
+    "helmet": "^8.3.0",
+    "jsqr": "^1.4.0",
+    "multer": "^2.4.0",
+    "pdfkit": "^0.20.2",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "pdf-lib": "^1.17.1"
+  },
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.13"
+  }
+}
