@@ -103,10 +103,12 @@ function apiRoutes(db, config) {
 
   r.post('/publicar', wrap(async (req, res) => {
     if (!config.staticDir) throw bad('El sistema no está en modo GitHub Pages (STATIC_DIR vacío)');
-    const st = publish.publishStatic(db, config);
-    const g = await publish.gitPublish(config, `Actualiza QR publicados (${new Date().toISOString().slice(0, 16).replace('T', ' ')})`);
-    audit(db, req.admin, 'publicar.github', { details: { ok: g.ok, nothing: Boolean(g.nothing), units: st.units } });
-    res.json({ ...g, units: st.units });
+    let g;
+    try {
+      g = await publish.gitPublish(db, config, `Actualiza QR publicados (${new Date().toISOString().slice(0, 16).replace('T', ' ')})`);
+    } catch (e) { throw bad(e.message); }
+    audit(db, req.admin, 'publicar.github', { details: { ok: g.ok, nothing: Boolean(g.nothing) } });
+    res.json(g);
   }));
 
   r.post('/logout', (req, res) => {

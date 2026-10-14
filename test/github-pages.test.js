@@ -67,7 +67,8 @@ test('modo GitHub Pages: publica docs/, se actualiza con cada cambio y otra PC i
   cfg.root = repo;
   const { app, db, imported } = createApp(cfg);
   t.after(() => db.close());
-  assert.deepEqual(imported, { units: 3, batches: 1 });
+  assert.equal(imported.units_added, 3);
+  assert.equal(imported.batches_added, 1);
   const again = db.prepare('SELECT serial, public_id, qr_url, status, destination_url FROM units ORDER BY serial').all();
   assert.deepEqual(again.map((u) => u.public_id), units.map((u) => u.public_id));
   assert.equal(again[0].status, 'activo');

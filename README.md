@@ -8,6 +8,21 @@ plástico (10 × 15 cm), exportar archivos listos para imprimir y administrar de
 - **Interfaz:** HTML + JavaScript sin paso de compilación, en `public/`.
 
 
+## Generador de QR (la forma fácil, desde el navegador)
+
+**https://larsbologna.github.io/CONFIGURACION-QR/generador/** — no hace falta instalar nada.
+
+1. **Primera vez:** la página pide una *llave* de GitHub (token) y explica cómo crearla: *Fine-grained token*, solo
+   para el repo **CONFIGURACION-QR**, permiso **Contents: Read and write**. Se guarda solo en ese navegador.
+2. **Nuevo QR:** pegá el link (reseñas de Google, Instagram, menú…) y tocá **Generar QR con el diseño**. Se usa el
+   próximo QR libre (001, 002, 003…) y si no queda ninguno se crea uno nuevo con el número siguiente.
+3. **Descargar PDF para el local:** tu diseño de 10 × 15 cm con ese QR y su número. Es lo que se manda a fabricar.
+4. **Cambiar link / Pausar / Reactivar:** cambia a dónde lleva el **mismo** QR. El plástico ya fabricado sigue sirviendo.
+5. Cada cambio se publica solo en 1 o 2 minutos (la página avisa cuando está listo). **Probar** abre el QR.
+
+Si dos personas guardan a la vez, la segunda vuelve a intentar con los datos nuevos: los números nunca se repiten.
+El nombre del negocio que escribas queda visible en `docs/registro.json` (el repo es público).
+
 ## Modo GitHub Pages (el que usa este proyecto)
 
 Los QR apuntan a **`https://larsbologna.github.io/CONFIGURACION-QR/q/<código>`**. Como GitHub Pages no ejecuta un
