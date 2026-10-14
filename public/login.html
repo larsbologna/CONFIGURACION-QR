@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Ingreso al panel</title><link rel="stylesheet" href="/static/app.css"></head>
+<body><main><div class="panel login-box">
+<h1>Panel de plásticos QR</h1>
+<form id="f">
+  <label for="u">Usuario</label><input id="u" name="username" autocomplete="username" required>
+  <label for="p">Contraseña</label><input id="p" name="password" type="password" autocomplete="current-password" required>
+  <div id="err" class="msg error hidden"></div>
+  <div class="actions"><button class="primary" type="submit">Ingresar</button></div>
+</form></div></main>
+<script src="/static/login.js"></script></body></html>
