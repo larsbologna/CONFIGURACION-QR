@@ -125,7 +125,20 @@ Cada unidad tiene: ID interno, número visible, identificador público aleatorio
 
 ---
 
-## 4. Imprimir los plásticos con su numeración
+## 4. Mandar el lote al local que fabrica los plásticos
+
+Panel → **Lotes e impresión** → elegí el lote → **Descargar paquete para el local (ZIP)**. Ese ZIP es lo que le
+mandás al local (por mail, WhatsApp o pendrive). Contiene:
+
+- `FICHA_PARA_EL_LOCAL.pdf`: medidas (100 × 150 mm), cantidad y rango, aviso de que cada QR es único, tamaño mínimo
+  del QR y una **hoja de control con miniaturas numeradas** para verificar que cada pieza lleve su número.
+- `TODOS_LOS_DISENOS_100x150mm.pdf`: todos los plásticos, una página por plástico, a tamaño real y en orden.
+- `pdf/`, `png/` y `svg/`: un archivo por plástico, nombrado con su número (`001_LOTE-2026-001.pdf`).
+- `listado.csv` y `LEEME.txt`.
+
+Si el dominio todavía no es el definitivo, el paquete sale marcado **“PRUEBA – NO FABRICAR”**.
+
+## 4 b. Imprimir vos mismo (opcional)
 
 Panel → **Lotes e impresión** → elegí el lote:
 

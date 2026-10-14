@@ -64,7 +64,14 @@ init(async () => {
   const frame = el('div');
   const zipOpts = { png: el('input', { type: 'checkbox', checked: true }), pdf: el('input', { type: 'checkbox', checked: true }), svg: el('input', { type: 'checkbox' }), sheet: el('input', { type: 'checkbox', checked: true }) };
 
-  const exportPanel = el('div', { class: 'panel' }, el('h2', { text: 'Plancha de impresión' }),
+  const localPanel = el('div', { class: 'panel' }, el('h2', { text: 'Mandar al local que fabrica los plásticos' }),
+    el('p', {}, 'Un solo ZIP con todo lo que necesita el local: ficha técnica con medidas e instrucciones, un PDF con todos los diseños a tamaño real (100 × 150 mm, una página por plástico), un archivo por plástico (PDF, PNG y SVG) con su número en el nombre y una hoja de control con miniaturas numeradas.'),
+    App.session.public_base_url_is_production ? null : el('div', { class: 'msg error', text: 'Modo prueba: el paquete saldrá marcado "PRUEBA – NO FABRICAR" porque los QR no apuntan a un dominio público. Configurá el dominio definitivo antes de generar el lote real.' }),
+    el('div', { class: 'actions' }, el('button', { class: 'primary', type: 'button', text: 'Descargar paquete para el local (ZIP)', onclick: () => {
+      toast('Preparando el paquete… en lotes grandes puede tardar unos minutos.', 'ok', 8000);
+      location.href = `/api/export/local.zip?${new URLSearchParams(selection)}`;
+    } })));
+  const exportPanel = el('div', { class: 'panel' }, el('h2', { text: 'Plancha de impresión (si imprimís vos)' }),
     el('p', { class: 'muted', text: 'Cada diseño se coloca a tamaño real (nunca se reduce ni amplía). El tamaño de la hoja es independiente del tamaño del plástico.' }),
     el('div', { class: 'row' },
       el('div', {}, el('label', { text: 'Papel' }), f.paper), el('div', {}, el('label', { text: 'Orientación' }), f.orientation),
@@ -89,8 +96,8 @@ init(async () => {
     el('div', { class: 'msg warn', text: 'Al imprimir en una impresora común, elegí "Tamaño real" o escala 100 %. Con "Ajustar a la página" el plástico NO medirá 10 × 15 cm. Medí la regla de 50 mm del pie de página para comprobarlo.' }),
     frame);
 
-  put(main, exportPanel, list);
-  if (!selection) exportPanel.classList.add('hidden');
+  put(main, localPanel, exportPanel, list);
+  if (!selection) { exportPanel.classList.add('hidden'); localPanel.classList.add('hidden'); }
 
   function params(extra = {}) {
     const p = new URLSearchParams(selection);
@@ -105,7 +112,7 @@ init(async () => {
 
   async function refresh() {
     if (!selection) return;
-    exportPanel.classList.remove('hidden');
+    exportPanel.classList.remove('hidden'); localPanel.classList.remove('hidden');
     custom.classList.toggle('hidden', f.paper.value !== 'PERSONALIZADO');
     let L;
     try { L = await api('GET', `/api/export/sheet-layout?${params()}`); } catch (e) {

@@ -203,3 +203,67 @@ test('rechaza imágenes con proporción distinta (no deforma)', async (t) => {
   assert.equal(r.status, 400);
   assert.match(r.body.error, /proporción/);
 });
+
+/** Lector mínimo de ZIP (directorio central) para inspeccionar el contenido. */
+function readZip(buf) {
+  const zlib = require('node:zlib');
+  let eocd = buf.length - 22;
+  while (buf.readUInt32LE(eocd) !== 0x06054b50) eocd--;
+  const count = buf.readUInt16LE(eocd + 10); let p = buf.readUInt32LE(eocd + 16);
+  const out = {};
+  for (let i = 0; i < count; i++) {
+    const method = buf.readUInt16LE(p + 10); const csize = buf.readUInt32LE(p + 20);
+    const nlen = buf.readUInt16LE(p + 28); const xlen = buf.readUInt16LE(p + 30); const clen = buf.readUInt16LE(p + 32);
+    const off = buf.readUInt32LE(p + 42); const name = buf.toString('utf8', p + 46, p + 46 + nlen);
+    const data0 = off + 30 + buf.readUInt16LE(off + 26) + buf.readUInt16LE(off + 28);
+    const raw = buf.subarray(data0, data0 + csize);
+    out[name] = method === 8 ? zlib.inflateRawSync(raw) : raw;
+    p += 46 + nlen + xlen + clen;
+  }
+  return out;
+}
+
+test('paquete para el local: ficha, PDF con todos los diseños a tamaño real y archivos por unidad', async (t) => {
+  const { c, batch, units } = await setup(t, 5);
+  const res = await c.req('GET', `/api/export/local.zip?batch_id=${batch.id}`, undefined, { raw: true });
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-disposition'), new RegExp(`PARA_EL_LOCAL_${batch.code}\\.zip`));
+  assert.doesNotMatch(res.headers.get('content-disposition'), /PRUEBA_/, 'dominio público: sin marca de prueba');
+  const files = readZip(Buffer.from(await res.arrayBuffer()));
+  for (const n of ['LEEME.txt', 'FICHA_PARA_EL_LOCAL.pdf', 'TODOS_LOS_DISENOS_100x150mm.pdf', 'listado.csv']) assert.ok(files[n], `falta ${n}`);
+  for (const u of units) for (const ext of ['pdf', 'png', 'svg']) assert.ok(files[`${ext}/${u.display_number}_${batch.code}.${ext}`]);
+  assert.match(files['LEEME.txt'].toString(), /del 001 al 005/);
+
+  const all = await PDFDocument.load(files['TODOS_LOS_DISENOS_100x150mm.pdf']);
+  assert.equal(all.getPageCount(), 5);
+  for (const pg of all.getPages()) {
+    const { width, height } = pg.getSize();
+    assert.ok(Math.abs(width / MM - 100) < 0.01 && Math.abs(height / MM - 150) < 0.01);
+  }
+  const ficha = await PDFDocument.load(files['FICHA_PARA_EL_LOCAL.pdf']);
+  assert.equal(ficha.getPageCount(), 2, 'instrucciones + 1 hoja de miniaturas');
+  for (const u of units) assert.equal((await decodeQr(files[`png/${u.display_number}_${batch.code}.png`])).text, u.qr_url);
+
+  if (!hasPdftoppm) return;
+  // Página i del PDF combinado = unidad i (QR correcto y en orden).
+  const dir = tmpDir('todos-');
+  fs.writeFileSync(path.join(dir, 't.pdf'), files['TODOS_LOS_DISENOS_100x150mm.pdf']);
+  execFileSync('pdftoppm', ['-r', '120', '-png', path.join(dir, 't.pdf'), path.join(dir, 'p')]);
+  const pngs = fs.readdirSync(dir).filter((f) => f.endsWith('.png')).sort();
+  assert.equal(pngs.length, 5);
+  for (let i = 0; i < 5; i++) assert.equal((await decodeQr(fs.readFileSync(path.join(dir, pngs[i])))).text, units[i].qr_url, `página ${i + 1}`);
+});
+
+test('paquete para el local en modo prueba queda marcado PRUEBA', async (t) => {
+  const ctx = await startApp({ PUBLIC_BASE_URL: 'http://localhost:3000' });
+  t.after(() => ctx.close());
+  createAdmin(ctx.db);
+  const c = new Client(ctx.base);
+  await c.login();
+  const { version } = await uploadFixtureDesign(c);
+  const b = await createBatch(c, version.id, 2);
+  const res = await c.req('GET', `/api/export/local.zip?batch_id=${b.body.id}`, undefined, { raw: true });
+  assert.match(res.headers.get('content-disposition'), /PRUEBA_PARA_EL_LOCAL_/);
+  const files = readZip(Buffer.from(await res.arrayBuffer()));
+  assert.match(files['LEEME.txt'].toString(), /NO FABRICAR/);
+});
