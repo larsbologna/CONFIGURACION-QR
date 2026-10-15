@@ -1,6 +1,6 @@
 {
- "estado": "generado",
- "destino_tipo": null,
- "destino_url": null,
+ "estado": "activo",
+ "destino_tipo": "url",
+ "destino_url": "https://mail.google.com/mail/u/0/#inbox",
  "destino_config": null
 }
