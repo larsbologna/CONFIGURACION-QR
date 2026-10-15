@@ -348,7 +348,7 @@
       if (state.current !== u) return;
       fetch('../q/' + u.id_publico + '.json?v=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).catch(function () { return ''; })
         .then(function (html) {
-          if (html === esperado) { target.className = 'publicacion msg ok'; target.textContent = '✓ Publicado: el QR ya lleva a ' + (u.destino_url || 'la página de estado') + '. Podés escanearlo.'; return; }
+          if (html === esperado) { target.className = 'publicacion msg ok'; target.textContent = '✓ Publicado: el QR lleva a ' + (u.destino_url || 'la página de estado') + '. En celulares que ya lo habían abierto puede tardar hasta 10 minutos en actualizarse.'; return; }
           if (Date.now() - t0 > 6 * 60e3) { target.textContent = 'Guardado en GitHub. La publicación está tardando más de lo normal; probá el QR en unos minutos.'; return; }
           setTimeout(poll, 10000);
         });

@@ -5,11 +5,12 @@
  * El panel copia este archivo a docs/generador/ al publicar: no editar la copia.
  *
  * Cada QR tiene dos archivos en docs/q/:
- *   <id>.json  → estado y destino actuales (lo único que cambia al editar un link)
- *   <id>.html  → página que abre el QR. Al abrirse pide <id>.json con un parámetro
- *                único (?t=...), así nunca usa una copia vieja guardada en caché por el
- *                navegador o por GitHub (que guarda las páginas ~10 minutos). Si no puede
- *                leerlo, usa el estado incluido en la propia página.
+ *   <id>.html  → página que abre el QR. Si el QR está activo, redirige apenas empieza a
+ *                cargar (script en el <head>, sin mostrar contenido intermedio).
+ *   <id>.json  → estado y destino actuales; lo usa el generador para saber cuándo GitHub
+ *                ya publicó un cambio.
+ * GitHub Pages guarda las páginas en caché ~10 minutos: un cambio de link puede tardar
+ * ese tiempo en llegar a todos los celulares.
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
@@ -63,49 +64,26 @@
       }).join('') + '</nav>' : '');
   }
 
-  // Script que corre al abrir el QR: lee el estado actual y redirige o muestra el mensaje.
-  // Se escribe como texto (no como función) para que sea idéntico en Node y en el navegador.
-  var LOADER = [
-    '(function(){',
-    'var fb=JSON.parse(document.getElementById("estado").textContent);',
-    'var id=location.pathname.split("/").pop().replace(/\\.html$/,"");',
-    'function vista(s){',
-    ' if(s.estado==="baja")return{t:"Código dado de baja",h:"Este código ya no está en uso"};',
-    ' if(s.estado==="pausado")return{t:"Temporalmente pausado",h:"Temporalmente no disponible",p:"Volvé a intentarlo más tarde."};',
-    ' if(s.estado==="defectuoso")return{t:"No disponible",h:"Este código no está disponible"};',
-    ' if(s.estado!=="activo"||!s.destino_tipo)return{t:"Código no activado",h:"Este código todavía no está activado",p:"Si sos el comercio, contactá a tu proveedor."};',
-    ' if(s.destino_tipo==="pagina"){var c=null;try{c=JSON.parse(s.destino_config)}catch(e){}',
-    '  if(!c||!c.links)return{t:"No disponible",h:"Página no disponible"};return{t:c.title,h:c.title,p:c.message||"",l:c.links};}',
-    ' if(/^https:\\/\\//i.test(s.destino_url||""))return{r:s.destino_url};',
-    ' return{t:"No disponible",h:"Este código no está disponible"};}',
-    'function mostrar(s){var v=vista(s);if(v.r){location.replace(v.r);return;}',
-    ' document.title=v.t;var m=document.getElementById("c");m.textContent="";',
-    ' var h=document.createElement("h1");h.textContent=v.h;m.appendChild(h);',
-    ' if(v.p){var p=document.createElement("p");p.textContent=v.p;m.appendChild(p);}',
-    ' if(v.l){var n=document.createElement("nav");v.l.forEach(function(x){if(!/^https:\\/\\//i.test(x.url))return;',
-    '  var a=document.createElement("a");a.className="btn";a.href=x.url;a.rel="noopener noreferrer";a.textContent=x.text;n.appendChild(a);});m.appendChild(n);}}',
-    'var listo=false;function fin(s){if(listo)return;listo=true;mostrar(s);}',
-    'setTimeout(function(){fin(fb);},4000);',
-    'fetch(id+".json?t="+Date.now(),{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json();})',
-    ' .then(function(s){fin(s);},function(){fin(fb);});',
-    '})();',
-  ].join('\n');
-
   /**
-   * HTML de la página de un QR. unit = { public_id, status, destination_type, destination_url, destination_config }
-   * Incluye el estado actual como respaldo; al abrirse consulta <id>.json para usar siempre el último.
+   * HTML de la página de un QR. unit = { status, destination_type, destination_url, destination_config }
+   * Activo con link: redirección inmediata desde el <head> (location.replace + meta refresh de respaldo),
+   * con la página en blanco para que no se vea nada intermedio.
    */
   function unitPage(unit) {
     var s = unitState(unit); var v = view(s);
-    var noscript = v.redirect ? '<noscript><meta http-equiv="refresh" content="0;url=' + escapeHtml(v.redirect) + '"></noscript>' : '';
-    var embedded = JSON.stringify(s).replace(/</g, '\\u003c');
-    return '<!doctype html>\n<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">\n'
-      + '<meta name="robots" content="noindex"><meta name="referrer" content="no-referrer">' + noscript + '\n'
-      + '<title>' + escapeHtml(v.redirect ? 'Abriendo…' : v.title) + '</title><style>' + CSS + '</style></head>\n'
-      + '<body><main class="card" id="c">' + (v.redirect ? '<h1>Abriendo…</h1>' : bodyHtml(v)) + '</main>\n'
-      + '<script type="application/json" id="estado">' + embedded + '</script>\n'
-      + '<script>\n' + LOADER + '\n</script>\n'
-      + '</body></html>\n';
+    var head = '<!doctype html>\n<html lang="es"><head><meta charset="utf-8">';
+    if (v.redirect) {
+      var js = JSON.stringify(v.redirect).replace(/</g, '\\u003c');
+      return head + '<script>location.replace(' + js + ');</script>'
+        + '<meta http-equiv="refresh" content="0;url=' + escapeHtml(v.redirect) + '">'
+        + '<meta name="referrer" content="no-referrer"><meta name="robots" content="noindex">'
+        + '<meta name="viewport" content="width=device-width,initial-scale=1"><title></title>'
+        + '<style>html,body{background:#fff;margin:0}</style></head><body></body></html>\n';
+    }
+    return head + '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+      + '<meta name="robots" content="noindex"><meta name="referrer" content="no-referrer">\n'
+      + '<title>' + escapeHtml(v.title) + '</title><style>' + CSS + '</style></head>\n'
+      + '<body><main class="card">' + bodyHtml(v) + '</main></body></html>\n';
   }
 
   function isPrivateIpv4(h) {
