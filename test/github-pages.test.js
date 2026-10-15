@@ -5,21 +5,74 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { startApp, Client, createAdmin, createBatch, tmpDir } = require('./helpers');
 const { makeFixture } = require('./fixtures/make-fixture');
+const http = require('node:http');
 const { unitPage } = require('../src/services/publish');
+
+function loadPlaywright() {
+  for (const p of ['playwright', '/opt/node-tools/node_modules/playwright']) {
+    try { return require(p); } catch { /* siguiente */ }
+  }
+  return null;
+}
+const pw = loadPlaywright();
 
 const BASE = 'https://larsbologna.github.io/CONFIGURACION-QR';
 
 test('páginas estáticas: una por QR, según estado y destino', () => {
   const u = { status: 'activo', destination_type: 'url', destination_url: 'https://ejemplo-real.com.ar/carta?a=1&b=2' };
   const html = unitPage(u);
-  assert.match(html, /http-equiv="refresh" content="0;url=https:\/\/ejemplo-real\.com\.ar\/carta\?a=1&amp;b=2"/);
-  assert.match(html, /location\.replace\("https:\/\/ejemplo-real\.com\.ar\/carta\?a=1&b=2"\)/);
+  assert.match(html, /<noscript><meta http-equiv="refresh" content="0;url=https:\/\/ejemplo-real\.com\.ar\/carta\?a=1&amp;b=2"><\/noscript>/);
+  assert.match(html, /"destino_url":"https:\/\/ejemplo-real\.com\.ar\/carta\?a=1&b=2"/, 'estado de respaldo incluido');
+  assert.match(html, /fetch\(id\+"\.json\?t="\+Date\.now\(\)/, 'consulta el estado actual sin caché');
   assert.match(unitPage({ ...u, status: 'generado' }), /todavía no está activado/);
   assert.match(unitPage({ ...u, status: 'pausado' }), /Temporalmente/);
   assert.match(unitPage({ ...u, status: 'baja' }), /ya no está en uso/);
   assert.doesNotMatch(unitPage({ ...u, status: 'pausado' }), /refresh/);
   const p = unitPage({ status: 'activo', destination_type: 'pagina', destination_config: JSON.stringify({ title: '<script>x</script>', message: '', links: [{ text: 'Menú', url: 'https://m.com.ar' }] }) });
   assert.doesNotMatch(p, /<script>x/);
+  assert.doesNotMatch(p, /<\/script>x/);
+});
+
+test('página del QR en el navegador: usa siempre el destino actual aunque la página esté en caché', { skip: !pw && 'Playwright no disponible' }, async (t) => {
+  const { unitPage: page0, stateJson } = require('../src/shared/pagina-qr');
+  const files = new Map();
+  const id = 'aaaaBBBBcccc';
+  // Página "vieja" (en caché) que todavía dice el destino anterior
+  files.set(`/q/${id}`, page0({ status: 'activo', destination_type: 'url', destination_url: 'https://viejo.example.com.ar/' }));
+  let json = stateJson({ status: 'activo', destination_type: 'url', destination_url: 'https://nuevo.example.com.ar/x' });
+  const srv = http.createServer((req, res) => {
+    const u = new URL(req.url, 'http://x');
+    if (u.pathname === `/q/${id}.json`) {
+      if (json === null) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'content-type': 'application/json' }); res.end(json); return;
+    }
+    const f = files.get(u.pathname.replace(/\.html$/, ''));
+    if (!f) { res.writeHead(404); res.end(); return; }
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'max-age=600' }); res.end(f);
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  t.after(() => srv.close());
+  const browser = await pw.chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  const visited = [];
+  await page.route(/https:\/\/(viejo|nuevo)\.example\.com\.ar\/.*/, (route) => { visited.push(route.request().url()); route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>destino</h1>' }); });
+  const base = `http://127.0.0.1:${srv.address().port}/q/${id}`;
+
+  await page.goto(base);
+  await page.waitForURL('https://nuevo.example.com.ar/x');
+  assert.deepEqual(visited, ['https://nuevo.example.com.ar/x'], 'nunca pasa por el destino viejo');
+
+  json = stateJson({ status: 'pausado', destination_type: 'url', destination_url: 'https://nuevo.example.com.ar/x' });
+  await page.goto(`${base}.html`);
+  await page.waitForFunction(() => /Temporalmente no disponible/.test(document.body.textContent));
+  assert.equal(await page.title(), 'Temporalmente pausado');
+
+  json = null; // sin acceso al .json → usa el respaldo incluido en la página
+  visited.length = 0;
+  await page.goto(base);
+  await page.waitForURL('https://viejo.example.com.ar/');
+  assert.deepEqual(visited, ['https://viejo.example.com.ar/']);
 });
 
 test('modo GitHub Pages: publica docs/, se actualiza con cada cambio y otra PC importa el registro sin repetir números', async (t) => {

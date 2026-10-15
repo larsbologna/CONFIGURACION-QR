@@ -2,7 +2,7 @@
  * Generador de QR con el diseño del plástico (corre en GitHub Pages, sin servidor).
  *  - Lee docs/registro.json (lista de QR, diseños y lotes).
  *  - "Nuevo QR": toma el próximo QR libre (o crea uno nuevo con el número siguiente),
- *    le pone el link y guarda en GitHub: registro + página docs/q/<código>.html.
+ *    le pone el link y guarda en GitHub: registro + docs/q/<código>.html y .json.
  *  - "Cambiar link" / "Pausar": cambia a dónde lleva el MISMO QR (el plástico no cambia).
  *  - Dibuja el diseño con el QR y el número, y lo descarga en PDF (10 × 15 cm) o PNG.
  * Guardar en GitHub usa una llave (token) que queda solo en el navegador de esta compu.
@@ -123,6 +123,7 @@
       var files = [
         { path: REG_PATH, content: JSON.stringify(h.reg, null, 1) + '\n' },
         { path: 'docs/q/' + change.unit.id_publico + '.html', content: PaginaQR.unitPage(unitFor(change.unit)) },
+        { path: 'docs/q/' + change.unit.id_publico + '.json', content: PaginaQR.stateJson(unitFor(change.unit)) },
       ];
       return commitFiles(h.sha, files, change.message).then(function () {
         state.reg = h.reg;
@@ -340,12 +341,12 @@
 
   /** GitHub Pages tarda 1-2 minutos: se consulta la página del QR hasta ver el cambio. */
   function esperarPublicacion(u) {
-    var target = $('res-publicacion'); var esperado = PaginaQR.unitPage(unitFor(u)); var t0 = Date.now();
+    var target = $('res-publicacion'); var esperado = PaginaQR.stateJson(unitFor(u)); var t0 = Date.now();
     target.className = 'publicacion msg aviso';
     target.textContent = 'Guardado. GitHub está publicando el cambio (tarda 1 o 2 minutos)…';
     (function poll() {
       if (state.current !== u) return;
-      fetch('../q/' + u.id_publico + '.html?v=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).catch(function () { return ''; })
+      fetch('../q/' + u.id_publico + '.json?v=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).catch(function () { return ''; })
         .then(function (html) {
           if (html === esperado) { target.className = 'publicacion msg ok'; target.textContent = '✓ Publicado: el QR ya lleva a ' + (u.destino_url || 'la página de estado') + '. Podés escanearlo.'; return; }
           if (Date.now() - t0 > 6 * 60e3) { target.textContent = 'Guardado en GitHub. La publicación está tardando más de lo normal; probá el QR en unos minutos.'; return; }
