@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Generador de QR</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<header><strong>Generador de QR</strong><span id="estado-conexion"></span></header>
+<main>
+  <section id="conectar" class="card hidden">
+    <h2>Conectar con GitHub (una sola vez)</h2>
+    <p>Para guardar los QR, esta página necesita una <b>llave</b> de tu cuenta de GitHub. Se guarda solo en esta compu.</p>
+    <ol>
+      <li>Abrí <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">este link</a> (tenés que estar con tu cuenta de GitHub).</li>
+      <li>En <b>Token name</b> poné <i>Generador QR</i>. En <b>Expiration</b> elegí la fecha que quieras (por ejemplo, 1 año).</li>
+      <li>En <b>Repository access</b> elegí <b>Only select repositories</b> y marcá <b id="nombre-repo">CONFIGURACION-QR</b>.</li>
+      <li>En <b>Permissions → Repository permissions → Contents</b> elegí <b>Read and write</b>.</li>
+      <li>Abajo de todo tocá <b>Generate token</b>, copiá la llave (empieza con <code>github_pat_</code>) y pegala acá:</li>
+    </ol>
+    <div class="fila"><input id="token" type="password" placeholder="github_pat_..." autocomplete="off"><button id="guardar-token" class="primario">Conectar</button></div>
+    <p id="msg-conectar" class="msg hidden"></p>
+  </section>
+
+  <section id="nuevo" class="card hidden">
+    <h2>Nuevo QR</h2>
+    <p>Pegá el link a donde tiene que llevar el QR. El sistema le asigna el próximo número libre y te arma el diseño listo para el local.</p>
+    <label for="link">Link de destino</label>
+    <input id="link" type="url" placeholder="https://g.page/r/.../review">
+    <label for="etiqueta">Nombre del negocio (opcional, para acordarte)</label>
+    <input id="etiqueta" type="text" maxlength="80" placeholder="Ej: Peluquería Ana">
+    <p class="ayuda">El nombre queda visible en el registro público del repositorio.</p>
+    <div class="fila"><button id="generar" class="primario">Generar QR con el diseño</button><a id="probar-link" class="boton" target="_blank" rel="noopener noreferrer">Probar link</a></div>
+    <p id="msg-nuevo" class="msg hidden"></p>
+  </section>
+
+  <section id="resultado" class="card hidden">
+    <h2 id="res-titulo"></h2>
+    <div class="resultado">
+      <canvas id="lienzo" aria-label="Diseño del plástico con el QR"></canvas>
+      <div>
+        <p id="res-detalle"></p>
+        <p class="publicacion" id="res-publicacion"></p>
+        <div class="col">
+          <button id="bajar-pdf" class="primario">Descargar PDF para el local (10 × 15 cm)</button>
+          <button id="bajar-png">Descargar imagen PNG</button>
+          <a id="probar-qr" class="boton" target="_blank" rel="noopener">Probar el QR (abre la dirección del QR)</a>
+        </div>
+        <p class="ayuda">El QR impreso no cambia nunca. Si después cambiás el link, este mismo plástico pasa a llevar al link nuevo.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="lista" class="card">
+    <h2>Mis QR</h2>
+    <p id="msg-lista" class="ayuda">Cargando…</p>
+    <div class="tabla"><table><thead><tr><th>N°</th><th>Negocio</th><th>Lleva a</th><th>Estado</th><th></th></tr></thead><tbody id="filas"></tbody></table></div>
+  </section>
+</main>
+<footer><button id="desconectar" class="chico hidden">Desconectar esta compu</button></footer>
+<script src="vendor/qrcode-generator-1.4.4.js"></script>
+<script src="vendor/jspdf-2.5.1.umd.min.js"></script>
+<script src="pagina-qr.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

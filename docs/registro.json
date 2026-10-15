@@ -1,8 +1,10 @@
 {
  "formato": "registro-plasticos-qr",
  "version": 1,
- "actualizado": "2026-10-14T18:01:41.068Z",
- "nota": "Registro público de unidades generadas. No contiene datos de clientes ni contraseñas. No editar a mano.",
+ "revision": 1,
+ "actualizado": "2026-10-14T22:22:19.032Z",
+ "dominio": "https://larsbologna.github.io/CONFIGURACION-QR",
+ "nota": "Registro público de los QR. Lo leen y escriben el panel y el generador web. No editar a mano.",
  "disenos": [
   {
    "id": 1,
@@ -80,7 +82,8 @@
    "estado": "generado",
    "destino_tipo": null,
    "destino_url": null,
-   "destino_config": null
+   "destino_config": null,
+   "etiqueta": null
   },
   {
    "serial": 2,
@@ -94,7 +97,8 @@
    "estado": "generado",
    "destino_tipo": null,
    "destino_url": null,
-   "destino_config": null
+   "destino_config": null,
+   "etiqueta": null
   },
   {
    "serial": 3,
@@ -108,7 +112,8 @@
    "estado": "generado",
    "destino_tipo": null,
    "destino_url": null,
-   "destino_config": null
+   "destino_config": null,
+   "etiqueta": null
   }
  ]
 }

@@ -7,43 +7,23 @@ const { HttpError } = require('./util');
 const auth = require('./services/auth');
 const backup = require('./services/backup');
 const publish = require('./services/publish');
-const { sha256 } = require('./util');
-const fs = require('node:fs');
 const { apiRoutes } = require('./routes/api');
 const { publicRoutes } = require('./routes/public');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
-/** Busca la imagen de un diseño del registro (raíz del repo o disenos/) y la copia a uploads. */
-function restoreDesignImage(config, d) {
-  const ext = d.formato === 'jpeg' ? 'jpg' : 'png';
-  const target = path.join(config.uploadsDir, `${d.imagen_sha256}.${ext}`);
-  if (fs.existsSync(target)) return path.basename(target);
-  const name = path.basename(String(d.imagen || ''));
-  for (const dir of [config.root, path.join(config.root, 'disenos')]) {
-    const f = path.join(dir, name);
-    if (name && fs.existsSync(f)) {
-      const buf = fs.readFileSync(f);
-      if (sha256(buf) !== d.imagen_sha256) throw new Error(`La imagen ${name} no coincide con la registrada (fue modificada)`);
-      fs.mkdirSync(config.uploadsDir, { recursive: true });
-      fs.writeFileSync(target, buf);
-      return path.basename(target);
-    }
-  }
-  throw new Error(`No se encuentra la imagen del diseño "${d.nombre}" (${name}). Copiala a la carpeta del proyecto.`);
-}
-
 function createApp(config) {
   const db = openDb(config.dbFile);
   const applied = migrate(db, { backupFn: (reason) => backup.createBackup(db, config, reason) });
+  // Incorpora docs/registro.json (base vacía u otra revisión más nueva, p. ej. cambios del generador web).
   let imported = null;
   try {
-    imported = publish.importRegistry(db, config, { storeImageSync: (d) => restoreDesignImage(config, d) });
+    imported = config.staticDir ? publish.syncRegistry(db, config) : null;
   } catch (e) {
     imported = { error: e.message };
-    console.error(`No se pudo importar docs/registro.json: ${e.message}`);
+    console.error(`No se pudo sincronizar docs/registro.json: ${e.message}`);
   }
-  // No regenerar si la importación falló: se sobrescribiría el registro publicado con uno vacío.
+  // No regenerar si la sincronización falló: se sobrescribiría el registro publicado.
   if (config.staticDir && !imported?.error) publish.publishStatic(db, config);
 
   const app = express();
