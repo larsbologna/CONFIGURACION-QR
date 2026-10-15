@@ -1,8 +1,8 @@
 {
  "formato": "registro-plasticos-qr",
  "version": 1,
- "revision": 5,
- "actualizado": "2026-10-15T18:20:30.937Z",
+ "revision": 6,
+ "actualizado": "2026-10-15T18:20:50.361Z",
  "dominio": "https://larsbologna.github.io/CONFIGURACION-QR",
  "nota": "Registro público de los QR. Lo leen y escriben el panel y el generador web. No editar a mano.",
  "disenos": [
@@ -67,6 +67,21 @@
    "numero_en_plastico": 1,
    "dominio": "https://larsbologna.github.io/CONFIGURACION-QR",
    "creado": "2026-10-14T18:01:41.063Z"
+  },
+  {
+   "id": 2,
+   "codigo": "LOTE-2026-002",
+   "diseno_id": 1,
+   "cantidad": 1,
+   "primer_serial": 4,
+   "ultimo_serial": 4,
+   "prefijo": "",
+   "digitos": 3,
+   "ubicacion": "plastico",
+   "numero_en_plancha": 0,
+   "numero_en_plastico": 1,
+   "dominio": "https://larsbologna.github.io/CONFIGURACION-QR",
+   "creado": "2026-10-15T18:20:50.360Z"
   }
  ],
  "unidades": [
@@ -114,6 +129,21 @@
    "destino_url": "https://www.youtube.com/",
    "destino_config": null,
    "etiqueta": "Peluqueria"
+  },
+  {
+   "serial": 4,
+   "numero": "004",
+   "id_publico": "dHS9ytTXoHab",
+   "url": "https://larsbologna.github.io/CONFIGURACION-QR/q/dHS9ytTXoHab",
+   "lote_id": 2,
+   "diseno_id": 1,
+   "creado": "2026-10-15T18:20:50.360Z",
+   "reemplaza_serial": null,
+   "estado": "activo",
+   "destino_tipo": "url",
+   "destino_url": "https://github.com/larsbologna/CONFIGURACION-QR",
+   "destino_config": null,
+   "etiqueta": "barber"
   }
  ]
 }
