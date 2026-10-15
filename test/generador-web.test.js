@@ -126,7 +126,7 @@ test('generador web: asigna QR libres, crea nuevos, cambia links sin cambiar el 
     await page.click('#generar');
     await page.waitForFunction(() => /se asignó el QR/.test(document.getElementById('msg-nuevo').textContent) && !document.getElementById('generar').disabled);
     const numero = (await page.textContent('#msg-nuevo')).match(/N° (\S+)\./)[1];
-    await page.waitForFunction(() => document.getElementById('lienzo').width > 0);
+    await page.waitForFunction(() => document.getElementById('lienzo').width === 1280);
     return numero;
   }
 

@@ -21,58 +21,49 @@ const BASE = 'https://larsbologna.github.io/CONFIGURACION-QR';
 test('páginas estáticas: una por QR, según estado y destino', () => {
   const u = { status: 'activo', destination_type: 'url', destination_url: 'https://ejemplo-real.com.ar/carta?a=1&b=2' };
   const html = unitPage(u);
-  assert.match(html, /<noscript><meta http-equiv="refresh" content="0;url=https:\/\/ejemplo-real\.com\.ar\/carta\?a=1&amp;b=2"><\/noscript>/);
-  assert.match(html, /"destino_url":"https:\/\/ejemplo-real\.com\.ar\/carta\?a=1&b=2"/, 'estado de respaldo incluido');
-  assert.match(html, /fetch\(id\+"\.json\?t="\+Date\.now\(\)/, 'consulta el estado actual sin caché');
+  assert.match(html, /^<!doctype html>\n<html lang="es"><head><meta charset="utf-8"><script>location\.replace\("https:\/\/ejemplo-real\.com\.ar\/carta\?a=1&b=2"\);<\/script>/, 'redirige desde lo primero del <head>');
+  assert.match(html, /<meta http-equiv="refresh" content="0;url=https:\/\/ejemplo-real\.com\.ar\/carta\?a=1&amp;b=2">/);
+  assert.match(html, /<body><\/body>/, 'sin contenido intermedio visible');
+  assert.doesNotMatch(html, /Abriendo/);
   assert.match(unitPage({ ...u, status: 'generado' }), /todavía no está activado/);
   assert.match(unitPage({ ...u, status: 'pausado' }), /Temporalmente/);
   assert.match(unitPage({ ...u, status: 'baja' }), /ya no está en uso/);
-  assert.doesNotMatch(unitPage({ ...u, status: 'pausado' }), /refresh/);
+  assert.doesNotMatch(unitPage({ ...u, status: 'pausado' }), /refresh|location\.replace/);
   const p = unitPage({ status: 'activo', destination_type: 'pagina', destination_config: JSON.stringify({ title: '<script>x</script>', message: '', links: [{ text: 'Menú', url: 'https://m.com.ar' }] }) });
   assert.doesNotMatch(p, /<script>x/);
-  assert.doesNotMatch(p, /<\/script>x/);
+  assert.doesNotMatch(unitPage({ ...u, destination_url: 'https://e.com.ar/</script><script>alert(1)</script>' }), /<\/script><script>alert/);
 });
 
-test('página del QR en el navegador: usa siempre el destino actual aunque la página esté en caché', { skip: !pw && 'Playwright no disponible' }, async (t) => {
-  const { unitPage: page0, stateJson } = require('../src/shared/pagina-qr');
-  const files = new Map();
+test('página del QR en el navegador: va directo al link sin mostrar nada en el medio', { skip: !pw && 'Playwright no disponible' }, async (t) => {
+  const { unitPage: page0 } = require('../src/shared/pagina-qr');
   const id = 'aaaaBBBBcccc';
-  // Página "vieja" (en caché) que todavía dice el destino anterior
-  files.set(`/q/${id}`, page0({ status: 'activo', destination_type: 'url', destination_url: 'https://viejo.example.com.ar/' }));
-  let json = stateJson({ status: 'activo', destination_type: 'url', destination_url: 'https://nuevo.example.com.ar/x' });
+  let html = page0({ status: 'activo', destination_type: 'url', destination_url: 'https://destino.example.com.ar/x' });
   const srv = http.createServer((req, res) => {
-    const u = new URL(req.url, 'http://x');
-    if (u.pathname === `/q/${id}.json`) {
-      if (json === null) { res.writeHead(404); res.end(); return; }
-      res.writeHead(200, { 'content-type': 'application/json' }); res.end(json); return;
-    }
-    const f = files.get(u.pathname.replace(/\.html$/, ''));
-    if (!f) { res.writeHead(404); res.end(); return; }
-    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'max-age=600' }); res.end(f);
+    if (new URL(req.url, 'http://x').pathname.replace(/\.html$/, '') !== `/q/${id}`) { res.writeHead(404); res.end(); return; }
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(html);
   });
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
   t.after(() => srv.close());
   const browser = await pw.chromium.launch();
   t.after(() => browser.close());
-  const page = await browser.newPage();
+  const pg = await browser.newPage();
   const visited = [];
-  await page.route(/https:\/\/(viejo|nuevo)\.example\.com\.ar\/.*/, (route) => { visited.push(route.request().url()); route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>destino</h1>' }); });
+  await pg.route(/https:\/\/destino\.example\.com\.ar\/.*/, (route) => { visited.push(route.request().url()); route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>destino</h1>' }); });
   const base = `http://127.0.0.1:${srv.address().port}/q/${id}`;
-
-  await page.goto(base);
-  await page.waitForURL('https://nuevo.example.com.ar/x');
-  assert.deepEqual(visited, ['https://nuevo.example.com.ar/x'], 'nunca pasa por el destino viejo');
-
-  json = stateJson({ status: 'pausado', destination_type: 'url', destination_url: 'https://nuevo.example.com.ar/x' });
-  await page.goto(`${base}.html`);
-  await page.waitForFunction(() => /Temporalmente no disponible/.test(document.body.textContent));
-  assert.equal(await page.title(), 'Temporalmente pausado');
-
-  json = null; // sin acceso al .json → usa el respaldo incluido en la página
-  visited.length = 0;
-  await page.goto(base);
-  await page.waitForURL('https://viejo.example.com.ar/');
-  assert.deepEqual(visited, ['https://viejo.example.com.ar/']);
+  await pg.goto(base, { waitUntil: 'commit' });
+  await pg.waitForURL('https://destino.example.com.ar/x');
+  assert.deepEqual(visited, ['https://destino.example.com.ar/x']);
+  // Con JavaScript desactivado también redirige (meta refresh)
+  const ctx2 = await browser.newContext({ javaScriptEnabled: false });
+  const pg2 = await ctx2.newPage();
+  await pg2.route(/https:\/\/destino\.example\.com\.ar\/.*/, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>destino</h1>' }));
+  await pg2.goto(base);
+  await pg2.waitForURL('https://destino.example.com.ar/x');
+  // Pausado: muestra el aviso y no redirige
+  html = page0({ status: 'pausado', destination_type: 'url', destination_url: 'https://destino.example.com.ar/x' });
+  await pg.goto(base);
+  assert.match(await pg.textContent('body'), /Temporalmente no disponible/);
+  assert.equal(pg.url(), base);
 });
 
 test('modo GitHub Pages: publica docs/, se actualiza con cada cambio y otra PC importa el registro sin repetir números', async (t) => {
