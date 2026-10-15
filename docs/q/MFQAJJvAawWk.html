@@ -2,4 +2,31 @@
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><meta name="referrer" content="no-referrer">
 <title>Código no activado</title><style>body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f4f5f7;color:#1d2330}.card{max-width:440px;margin:12vh auto;background:#fff;border-radius:12px;padding:28px 24px;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.08)}h1{font-size:21px;margin:0 0 10px}p{color:#5d6676}nav{display:flex;flex-direction:column;gap:10px;margin-top:18px}.btn{display:block;padding:13px;border-radius:8px;background:#1a5fd0;color:#fff;text-decoration:none;font-weight:600}</style></head>
-<body><main class="card"><h1>Este código todavía no está activado</h1><p>Si sos el comercio, contactá a tu proveedor.</p></main></body></html>
+<body><main class="card" id="c"><h1>Este código todavía no está activado</h1><p>Si sos el comercio, contactá a tu proveedor.</p></main>
+<script type="application/json" id="estado">{"estado":"generado","destino_tipo":null,"destino_url":null,"destino_config":null}</script>
+<script>
+(function(){
+var fb=JSON.parse(document.getElementById("estado").textContent);
+var id=location.pathname.split("/").pop().replace(/\.html$/,"");
+function vista(s){
+ if(s.estado==="baja")return{t:"Código dado de baja",h:"Este código ya no está en uso"};
+ if(s.estado==="pausado")return{t:"Temporalmente pausado",h:"Temporalmente no disponible",p:"Volvé a intentarlo más tarde."};
+ if(s.estado==="defectuoso")return{t:"No disponible",h:"Este código no está disponible"};
+ if(s.estado!=="activo"||!s.destino_tipo)return{t:"Código no activado",h:"Este código todavía no está activado",p:"Si sos el comercio, contactá a tu proveedor."};
+ if(s.destino_tipo==="pagina"){var c=null;try{c=JSON.parse(s.destino_config)}catch(e){}
+  if(!c||!c.links)return{t:"No disponible",h:"Página no disponible"};return{t:c.title,h:c.title,p:c.message||"",l:c.links};}
+ if(/^https:\/\//i.test(s.destino_url||""))return{r:s.destino_url};
+ return{t:"No disponible",h:"Este código no está disponible"};}
+function mostrar(s){var v=vista(s);if(v.r){location.replace(v.r);return;}
+ document.title=v.t;var m=document.getElementById("c");m.textContent="";
+ var h=document.createElement("h1");h.textContent=v.h;m.appendChild(h);
+ if(v.p){var p=document.createElement("p");p.textContent=v.p;m.appendChild(p);}
+ if(v.l){var n=document.createElement("nav");v.l.forEach(function(x){if(!/^https:\/\//i.test(x.url))return;
+  var a=document.createElement("a");a.className="btn";a.href=x.url;a.rel="noopener noreferrer";a.textContent=x.text;n.appendChild(a);});m.appendChild(n);}}
+var listo=false;function fin(s){if(listo)return;listo=true;mostrar(s);}
+setTimeout(function(){fin(fb);},4000);
+fetch(id+".json?t="+Date.now(),{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json();})
+ .then(function(s){fin(s);},function(){fin(fb);});
+})();
+</script>
+</body></html>

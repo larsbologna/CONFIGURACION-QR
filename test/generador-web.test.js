@@ -31,6 +31,10 @@ function mockRepo() {
   for (const rel of ['docs/registro.json', ...fs.readdirSync(path.join(DOCS, 'q')).map((f) => `docs/q/${f}`)]) {
     files.set(rel, fs.readFileSync(path.join(DOCS, '..', rel), 'utf8'));
   }
+  // La prueba parte siempre de los 3 QR libres, sin importar el estado real del repositorio.
+  const reg0 = JSON.parse(files.get('docs/registro.json'));
+  reg0.unidades = reg0.unidades.filter((u) => u.serial <= 3).map((u) => ({ ...u, estado: 'generado', destino_tipo: null, destino_url: null, destino_config: null, etiqueta: null }));
+  files.set('docs/registro.json', `${JSON.stringify(reg0, null, 1)}\n`);
   const repo = { files, head: 'c0', commits: new Map([['c0', { tree: 't0', files: new Map(files) }]]), trees: new Map([['t0', new Map(files)]]), n: 0, failNextPatch: 0, patches: 0 };
   repo.handle = (method, url, body) => {
     const u = new URL(url); const p = u.pathname.replace('/repos/larsbologna/CONFIGURACION-QR', '');
@@ -136,6 +140,7 @@ test('generador web: asigna QR libres, crea nuevos, cambia links sin cambiar el 
   assert.equal(u1.etiqueta, 'Peluquería Ana');
   const page1 = repo.current().get(`docs/q/${u1.id_publico}.html`);
   assert.match(page1, /url=https:\/\/g\.page\/r\/PRUEBA\/review/);
+  assert.equal(JSON.parse(repo.current().get(`docs/q/${u1.id_publico}.json`)).destino_url, 'https://g.page/r/PRUEBA/review');
 
   // El diseño dibujado tiene el QR correcto y el número dentro
   const dataUrl = await page.evaluate(() => document.getElementById('lienzo').toDataURL('image/png'));
@@ -186,11 +191,13 @@ test('generador web: asigna QR libres, crea nuevos, cambia links sin cambiar el 
   assert.equal(u1b.destino_url, 'https://www.google.com/maps/place/nuevo');
   assert.ok(reg.revision > revBefore);
   assert.match(repo.current().get(`docs/q/${u1.id_publico}.html`), /google\.com\/maps\/place\/nuevo/);
+  assert.equal(JSON.parse(repo.current().get(`docs/q/${u1.id_publico}.json`)).destino_url, 'https://www.google.com/maps/place/nuevo');
 
   // Pausar
   await page.locator('#filas tr', { hasText: 'Bar B' }).getByRole('button', { name: 'Pausar' }).click();
   await page.waitForFunction(() => /Guardado: QR N° 002/.test(document.getElementById('msg-nuevo').textContent));
   assert.match(repo.current().get(`docs/q/${repo.registry().unidades[1].id_publico}.html`), /Temporalmente no disponible/);
+  assert.equal(JSON.parse(repo.current().get(`docs/q/${repo.registry().unidades[1].id_publico}.json`)).estado, 'pausado');
   assert.deepEqual(errors, []);
   if (process.env.CAPTURA) await page.screenshot({ path: path.join(process.env.CAPTURA, 'gen-2.png'), fullPage: true });
 

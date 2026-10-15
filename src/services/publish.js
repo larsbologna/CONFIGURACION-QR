@@ -18,7 +18,7 @@ const path = require('node:path');
 const { execFile } = require('node:child_process');
 const { tx, nowIso } = require('../db');
 const { PUBLIC_ID_RE } = require('../util');
-const { unitPage: sharedUnitPage } = require('../shared/pagina-qr');
+const { unitPage: sharedUnitPage, stateJson } = require('../shared/pagina-qr');
 
 const REGISTRY_FORMAT = 'registro-plasticos-qr';
 const SHARED_FILE = path.join(__dirname, '..', 'shared', 'pagina-qr.js');
@@ -98,11 +98,14 @@ function publishStatic(db, config, { storeImageSync } = {}) {
   let changed = 0;
   const w = (rel, content) => { changed += writeIfChanged(path.join(dir, rel), content) ? 1 : 0; };
   w('.nojekyll', '');
-  w('index.html', sharedUnitPage({ status: 'generado' }).replace('Este código todavía no está activado', 'Códigos QR')
-    .replace('<p>Si sos el comercio, contactá a tu proveedor.</p>', '<p>Escaneá el código de tu plástico.</p>'));
+  w('index.html', '<!doctype html>\n<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<meta name="robots" content="noindex"><title>Códigos QR</title></head><body style="font-family:system-ui,sans-serif;text-align:center;margin-top:15vh">'
+    + '<h1>Códigos QR</h1><p>Escaneá el código de tu plástico.</p></body></html>\n');
   const units = db.prepare('SELECT * FROM units ORDER BY serial').all();
   for (const u of units) {
-    if (PUBLIC_ID_RE.test(u.public_id)) w(path.join('q', `${u.public_id}.html`), unitPage(u));
+    if (!PUBLIC_ID_RE.test(u.public_id)) continue;
+    w(path.join('q', `${u.public_id}.html`), unitPage(u));
+    w(path.join('q', `${u.public_id}.json`), stateJson(u));
   }
   // Archivos de apoyo del generador web (copias: el original está en src/ y assets/).
   w(path.join('generador', 'pagina-qr.js'), fs.readFileSync(SHARED_FILE));
