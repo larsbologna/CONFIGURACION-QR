@@ -1,8 +1,8 @@
 {
  "formato": "registro-plasticos-qr",
  "version": 1,
- "revision": 7,
- "actualizado": "2026-10-20T16:17:40.178Z",
+ "revision": 8,
+ "actualizado": "2026-10-26T19:38:53.430Z",
  "dominio": "https://larsbologna.github.io/CONFIGURACION-QR",
  "nota": "Registro público de los QR. Lo leen y escriben el panel y el generador web. No editar a mano.",
  "disenos": [
@@ -96,7 +96,7 @@
    "reemplaza_serial": null,
    "estado": "activo",
    "destino_tipo": "url",
-   "destino_url": "https://larsbologna.github.io/PAGINA-QR/?c=cafe-la-esquina",
+   "destino_url": "https://search.google.com/local/writereview?placeid=ChIJ1xq5eT4vo5URc_JINTQ4OR8",
    "destino_config": null,
    "etiqueta": "Reseñas"
   },
