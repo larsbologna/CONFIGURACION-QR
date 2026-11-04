@@ -488,6 +488,9 @@
   }
 
   function init() {
+    var me = document.querySelector('script[src^="app.js"]');
+    var ver = me && /[?&]v=([0-9a-f]+)/.exec(me.getAttribute('src'));
+    $('version').textContent = 'Versión ' + (ver ? ver[1].slice(0, 6) : 'local');
     $('generar').addEventListener('click', generar);
     $('buscar').addEventListener('input', function () { if (state.reg) renderLista(); });
     $('res-cambiar').addEventListener('click', function () {

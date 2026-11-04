@@ -18,6 +18,13 @@ const pw = loadPlaywright();
 
 const BASE = 'https://larsbologna.github.io/CONFIGURACION-QR';
 
+test('generador: los archivos llevan marca de versión al día (el celular no usa copias viejas)', () => {
+  const { stamp, INDEX } = require('../scripts/version-generador');
+  const html = fs.readFileSync(INDEX, 'utf8');
+  for (const f of ['app.js', 'estilo.css', 'pagina-qr.js']) assert.match(html, new RegExp(`${f.replace('.', '\\.')}\\?v=[0-9a-f]{10}"`), `${f} con ?v=`);
+  assert.equal(stamp(html), html, 'correr: node scripts/version-generador.js');
+});
+
 test('páginas estáticas: una por QR, según estado y destino', () => {
   const u = { status: 'activo', destination_type: 'url', destination_url: 'https://ejemplo-real.com.ar/carta?a=1&b=2' };
   const html = unitPage(u);
