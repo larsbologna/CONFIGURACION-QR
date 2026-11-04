@@ -12,8 +12,9 @@
 <header><strong>Generador de QR</strong><span id="estado-conexion"></span></header>
 <main>
   <section id="conectar" class="card hidden">
-    <h2>Conectar con GitHub (una sola vez)</h2>
-    <p>Para guardar los QR, esta página necesita una <b>llave</b> de tu cuenta de GitHub. Se guarda solo en esta compu.</p>
+    <h2>Conectar con GitHub (una sola vez por dispositivo)</h2>
+    <p>Para crear QR o cambiar links, esta página necesita una <b>llave</b> de tu cuenta de GitHub. Se guarda solo en este navegador: en la compu y en el celular se pega por separado. <b>Si ya tenés una llave, pegá la misma</b> (no hace falta crear otra).</p>
+    <p class="ayuda">¿No la tenés a mano? Creá una nueva con estos pasos:</p>
     <ol>
       <li>Abrí <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">este link</a> (tenés que estar con tu cuenta de GitHub).</li>
       <li>En <b>Token name</b> poné <i>Generador QR</i>. En <b>Expiration</b> elegí la fecha que quieras (por ejemplo, 1 año).</li>
@@ -62,7 +63,7 @@
     <div id="filas" class="qr-lista"></div>
   </section>
 </main>
-<footer><button id="desconectar" class="chico hidden">Desconectar esta compu</button></footer>
+<footer><button id="desconectar" class="chico hidden">Desconectar este dispositivo</button></footer>
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="vendor/jspdf-2.5.1.umd.min.js"></script>
 <script src="pagina-qr.js"></script>
