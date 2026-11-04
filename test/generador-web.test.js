@@ -34,6 +34,7 @@ function mockRepo() {
   // La prueba parte siempre de los 3 QR libres, sin importar el estado real del repositorio.
   const reg0 = JSON.parse(files.get('docs/registro.json'));
   reg0.unidades = reg0.unidades.filter((u) => u.serial <= 3).map((u) => ({ ...u, estado: 'generado', destino_tipo: null, destino_url: null, destino_config: null, etiqueta: null }));
+  reg0.lotes = reg0.lotes.filter((l) => reg0.unidades.some((u) => u.lote_id === l.id));
   files.set('docs/registro.json', `${JSON.stringify(reg0, null, 1)}\n`);
   const repo = { files, head: 'c0', commits: new Map([['c0', { tree: 't0', files: new Map(files) }]]), trees: new Map([['t0', new Map(files)]]), n: 0, failNextPatch: 0, patches: 0 };
   repo.handle = (method, url, body) => {
@@ -75,10 +76,14 @@ function mockRepo() {
   return repo;
 }
 
-function staticServer() {
+function staticServer(repo) {
   const srv = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
     const rel = decodeURIComponent(u.pathname).replace(/^\/CONFIGURACION-QR\//, '');
+    // registro y páginas de QR: los del repositorio simulado (lo que "publicó" GitHub)
+    if (repo && repo.current().has(`docs/${rel}`)) {
+      res.writeHead(200, { 'content-type': MIME[path.extname(rel)] || 'text/plain' }); res.end(repo.current().get(`docs/${rel}`)); return;
+    }
     const f = path.join(DOCS, rel.endsWith('/') || rel === '' ? `${rel}index.html` : rel);
     if (!f.startsWith(DOCS) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); res.end(); return; }
     res.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' });
@@ -89,7 +94,7 @@ function staticServer() {
 
 test('generador web: asigna QR libres, crea nuevos, cambia links sin cambiar el QR y descarga el diseño', { skip: !pw && 'Playwright no disponible' }, async (t) => {
   const repo = mockRepo();
-  const srv = await staticServer();
+  const srv = await staticServer(repo);
   t.after(() => srv.close());
   const browser = await pw.chromium.launch();
   t.after(() => browser.close());
@@ -105,7 +110,7 @@ test('generador web: asigna QR libres, crea nuevos, cambia links sin cambiar el 
   const base = `http://127.0.0.1:${srv.address().port}/CONFIGURACION-QR/generador/`;
   await page.goto(base);
   await page.waitForSelector('#conectar:not(.hidden)');
-  assert.equal(await page.locator('#filas tr').count(), 3, 'muestra los 3 QR existentes');
+  assert.equal(await page.locator('#filas .qr-item').count(), 3, 'muestra los 3 QR existentes');
 
   // Llave inválida y luego válida
   await page.fill('#token', 'github_pat_MALA');
@@ -181,10 +186,17 @@ test('generador web: asigna QR libres, crea nuevos, cambia links sin cambiar el 
 
   // Cambiar el link de la 001: mismo QR, nuevo destino
   const revBefore = reg.revision;
-  const respuestas = ['https://www.google.com/maps/place/nuevo', 'Peluquería Ana (nuevo local)'];
-  page.on('dialog', (d) => d.accept(respuestas.shift()));
-  await page.locator('#filas tr', { hasText: 'Peluquería Ana' }).getByRole('button', { name: 'Cambiar link' }).click();
-  await page.waitForFunction(() => /Guardado: QR N° 001/.test(document.getElementById('msg-nuevo').textContent));
+  const card1 = page.locator('#filas .qr-item', { hasText: 'Peluquería Ana' });
+  await card1.getByRole('button', { name: 'Cambiar link' }).click();
+  const form1 = card1.locator('.qr-form');
+  assert.equal(await form1.locator('input[type=url]').inputValue(), 'https://g.page/r/PRUEBA/review', 'el formulario trae el link actual');
+  await form1.locator('input[type=url]').fill('javascript:alert(1)');
+  await form1.getByRole('button', { name: 'Guardar' }).click();
+  await page.waitForFunction(() => /https:\/\//.test(document.querySelector('.qr-item[data-numero="001"] .msg.error')?.textContent || ''));
+  await form1.locator('input[type=url]').fill('https://www.google.com/maps/place/nuevo');
+  await form1.locator('input[type=text]').fill('Peluquería Ana (nuevo local)');
+  await form1.getByRole('button', { name: 'Guardar' }).click();
+  await page.waitForFunction(() => /Guardado: QR N° 001/.test(document.querySelector('.qr-item[data-numero="001"] .msg')?.textContent || ''));
   reg = repo.registry();
   const u1b = reg.unidades.find((u) => u.numero === '001');
   assert.equal(u1b.id_publico, u1.id_publico, 'el QR (y el plástico) no cambian');
@@ -194,10 +206,28 @@ test('generador web: asigna QR libres, crea nuevos, cambia links sin cambiar el 
   assert.equal(JSON.parse(repo.current().get(`docs/q/${u1.id_publico}.json`)).destino_url, 'https://www.google.com/maps/place/nuevo');
 
   // Pausar
-  await page.locator('#filas tr', { hasText: 'Bar B' }).getByRole('button', { name: 'Pausar' }).click();
-  await page.waitForFunction(() => /Guardado: QR N° 002/.test(document.getElementById('msg-nuevo').textContent));
+  await page.locator('#filas .qr-item', { hasText: 'Bar B' }).getByRole('button', { name: 'Pausar' }).click();
+  await page.waitForFunction(() => /Guardado: QR N° 002/.test(document.querySelector('.qr-item[data-numero="002"] .msg')?.textContent || ''));
   assert.match(repo.current().get(`docs/q/${repo.registry().unidades[1].id_publico}.html`), /Temporalmente no disponible/);
   assert.equal(JSON.parse(repo.current().get(`docs/q/${repo.registry().unidades[1].id_publico}.json`)).estado, 'pausado');
+  // En un celular: nada se sale de la pantalla y se puede cambiar el link desde la tarjeta
+  await page.setViewportSize({ width: 375, height: 740 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'sin desplazamiento horizontal');
+  const card4 = page.locator('#filas .qr-item', { hasText: 'Kiosco D' });
+  for (const name of ['Cambiar link', 'Ver diseño', 'Pausar']) {
+    const box = await card4.getByRole('button', { name }).boundingBox();
+    assert.ok(box && box.x >= 0 && box.x + box.width <= 375 && box.height >= 44, `botón "${name}" visible y fácil de tocar`);
+  }
+  await card4.getByRole('button', { name: 'Cambiar link' }).click();
+  await card4.locator('.qr-form input[type=url]').fill('https://www.instagram.com/kiosco.d/');
+  await card4.getByRole('button', { name: 'Guardar' }).click();
+  await page.waitForFunction(() => /Guardado: QR N° 004/.test(document.querySelector('.qr-item[data-numero="004"] .msg')?.textContent || ''));
+  assert.equal(repo.registry().unidades[3].destino_url, 'https://www.instagram.com/kiosco.d/');
+  assert.equal(repo.registry().unidades[3].id_publico, u4.id_publico);
+  // Buscador
+  await page.fill('#buscar', 'kiosco');
+  assert.equal(await page.locator('#filas .qr-item').count(), 1);
+  await page.fill('#buscar', '');
   assert.deepEqual(errors, []);
   if (process.env.CAPTURA) await page.screenshot({ path: path.join(process.env.CAPTURA, 'gen-2.png'), fullPage: true });
 

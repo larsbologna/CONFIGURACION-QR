@@ -305,29 +305,86 @@
     if (u.estado === 'baja') return ['Dado de baja', ''];
     return ['Libre (sin link)', ''];
   }
+  /** Lista de QR en tarjetas (se adapta al ancho de la pantalla, también en celular). */
   function renderLista() {
-    var rows = state.reg.unidades.slice().sort(function (a, b) { return b.serial - a.serial; });
-    $('msg-lista').textContent = rows.length ? rows.length + ' QR en total. Los "Libre" se usan primero al generar.' : 'Todavía no hay QR.';
-    var tbody = $('filas'); tbody.textContent = '';
-    rows.forEach(function (u) {
-      var st = estadoTexto(u); var conectado = Boolean(state.token);
-      tbody.appendChild(el('tr', {}, [
-        el('td', { class: 'numero', text: u.numero }),
-        el('td', { text: u.etiqueta || '—' }),
-        el('td', { class: 'link' }, [u.destino_url ? el('a', { href: u.destino_url, target: '_blank', rel: 'noopener noreferrer', text: u.destino_url }) : '—']),
-        el('td', {}, [el('span', { class: 'estado ' + st[1], text: st[0] })]),
-        el('td', { class: 'acciones' }, [
-          el('button', { class: 'chico', text: 'Ver diseño', onclick: function () { verResultado(u, false); } }),
-          conectado && u.estado !== 'baja' ? el('button', { class: 'chico', text: 'Cambiar link', onclick: function () { cambiarLink(u); } }) : null,
-          conectado && u.estado === 'activo' ? el('button', { class: 'chico', text: 'Pausar', onclick: function (e) { cambiarEstado(u, 'pausado', e.target); } }) : null,
-          conectado && u.estado === 'pausado' ? el('button', { class: 'chico', text: 'Reactivar', onclick: function (e) { cambiarEstado(u, 'activo', e.target); } }) : null,
-          el('a', { class: 'boton chico', href: u.url, target: '_blank', rel: 'noopener', text: 'Probar' }),
-        ]),
-      ]));
+    var filtro = ($('buscar').value || '').trim().toLowerCase();
+    var todos = state.reg.unidades.slice().sort(function (a, b) { return b.serial - a.serial; });
+    var rows = todos.filter(function (u) {
+      return !filtro || u.numero.toLowerCase().indexOf(filtro) >= 0 || (u.etiqueta || '').toLowerCase().indexOf(filtro) >= 0
+        || (u.destino_url || '').toLowerCase().indexOf(filtro) >= 0;
     });
+    $('msg-lista').textContent = !todos.length ? 'Todavía no hay QR.'
+      : filtro ? rows.length + ' de ' + todos.length + ' QR.'
+        : todos.length + ' QR en total. Los "Libre" se usan primero al generar.';
+    var lista = $('filas'); lista.textContent = '';
+    rows.forEach(function (u) { lista.appendChild(tarjeta(u)); });
   }
 
-  function verResultado(u, recienGuardado) {
+  function tarjeta(u) {
+    var st = estadoTexto(u); var conectado = Boolean(state.token);
+    var aviso = el('p', { class: 'msg hidden' });
+    var form = conectado && u.estado !== 'baja' ? formularioLink(u, aviso) : null;
+    var item = el('article', { class: 'qr-item', 'data-numero': u.numero }, [
+      el('div', { class: 'qr-cab' }, [
+        el('span', { class: 'numero', text: u.numero }),
+        el('span', { class: 'negocio', text: u.etiqueta || 'Sin nombre' }),
+        el('span', { class: 'estado ' + st[1], text: st[0] }),
+      ]),
+      el('p', { class: 'qr-link' }, [u.destino_url
+        ? el('a', { href: u.destino_url, target: '_blank', rel: 'noopener noreferrer', text: u.destino_url })
+        : el('span', { class: 'ayuda', text: 'Sin link todavía' })]),
+      el('div', { class: 'qr-acciones' }, [
+        form ? el('button', { class: 'primario', text: u.destino_url ? 'Cambiar link' : 'Ponerle link', onclick: function () { abrirForm(form); } }) : null,
+        el('button', { text: 'Ver diseño', onclick: function () { verResultado(u, false); } }),
+        conectado && u.estado === 'activo' ? el('button', { text: 'Pausar', onclick: function (e) { cambiarEstado(u, 'pausado', e.target, aviso); } }) : null,
+        conectado && u.estado === 'pausado' ? el('button', { text: 'Reactivar', onclick: function (e) { cambiarEstado(u, 'activo', e.target, aviso); } }) : null,
+        el('a', { class: 'boton', href: u.url, target: '_blank', rel: 'noopener', text: 'Probar' }),
+      ]),
+      form, aviso,
+    ]);
+    return item;
+  }
+
+  function abrirForm(form) {
+    document.querySelectorAll('.qr-form').forEach(function (f) { if (f !== form) f.classList.add('hidden'); });
+    form.classList.remove('hidden');
+    var input = form.querySelector('input');
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(function () { input.focus(); input.select(); }, 250);
+  }
+
+  /** Formulario dentro de la tarjeta para cambiar el link y el nombre del MISMO QR. */
+  function formularioLink(u, aviso) {
+    var link = el('input', { type: 'url', inputmode: 'url', autocomplete: 'off', placeholder: 'https://...', value: u.destino_url || '' });
+    var nombre = el('input', { type: 'text', maxlength: '80', placeholder: 'Nombre del negocio (opcional)', value: u.etiqueta || '' });
+    var guardar = el('button', { class: 'primario', type: 'submit', text: 'Guardar' });
+    var form = el('form', { class: 'qr-form hidden' }, [
+      el('label', { text: 'Nuevo link para el QR N° ' + u.numero }), link,
+      el('label', { text: 'Nombre del negocio' }), nombre,
+      el('p', { class: 'ayuda', text: 'El plástico no cambia: el mismo QR pasa a llevar al link nuevo.' }),
+      el('div', { class: 'qr-acciones' }, [guardar,
+        el('button', { type: 'button', text: 'Cancelar', onclick: function () { form.classList.add('hidden'); avisar(aviso, ''); } })]),
+    ]);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = PaginaQR.validarUrl(link.value, state.reg.dominio);
+      if (!v.ok) { avisar(aviso, v.error, 'error'); link.focus(); return; }
+      var etiqueta = nombre.value.trim().slice(0, 80) || null;
+      guardar.disabled = true;
+      guardarCambio(u.serial, function (x) {
+        x.destino_tipo = 'url'; x.destino_url = v.url; x.destino_config = null; x.estado = 'activo'; x.etiqueta = etiqueta;
+        return 'QR ' + x.numero + ' ahora lleva a ' + v.url;
+      }, aviso, function () { guardar.disabled = false; });
+    });
+    return form;
+  }
+
+  function avisar(elm, text, kind) {
+    elm.textContent = text || '';
+    elm.className = 'msg ' + (kind || 'ok') + (text ? '' : ' hidden');
+  }
+
+  function verResultado(u, recienGuardado, sinScroll) {
     state.current = u; show('resultado', true);
     $('res-titulo').textContent = 'QR N° ' + u.numero + (u.etiqueta ? ' — ' + u.etiqueta : '');
     $('res-detalle').textContent = !u.destino_url ? 'Este QR todavía no tiene link.'
@@ -335,7 +392,8 @@
         : 'Lleva a: ' + u.destino_url;
     $('probar-qr').href = u.url;
     $('res-publicacion').textContent = '';
-    draw(u).then(function () { $('resultado').scrollIntoView({ behavior: 'smooth' }); }).catch(function (e) { $('res-detalle').textContent = e.message; });
+    $('res-cambiar').classList.toggle('hidden', !state.token || u.estado === 'baja');
+    draw(u).then(function () { if (!sinScroll) $('resultado').scrollIntoView({ behavior: 'smooth' }); }).catch(function (e) { $('res-detalle').textContent = e.message; });
     if (recienGuardado) esperarPublicacion(u);
   }
 
@@ -377,33 +435,28 @@
       .then(function () { btn.disabled = false; });
   }
 
-  function cambiarLink(u) {
-    var nuevo = window.prompt('Nuevo link para el QR N° ' + u.numero + ' (el plástico no cambia):', u.destino_url || 'https://');
-    if (nuevo == null) return;
-    var v = PaginaQR.validarUrl(nuevo, state.reg.dominio);
-    if (!v.ok) { window.alert(v.error); return; }
-    var etiqueta = window.prompt('Nombre del negocio (opcional):', u.etiqueta || '');
-    if (etiqueta == null) return;
-    guardarCambio(u.serial, function (x) {
-      x.destino_tipo = 'url'; x.destino_url = v.url; x.destino_config = null; x.estado = 'activo'; x.etiqueta = etiqueta.trim().slice(0, 80) || null;
-      return 'QR ' + x.numero + ' ahora lleva a ' + v.url;
-    });
-  }
-  function cambiarEstado(u, estado, btn) {
+  function cambiarEstado(u, estado, btn, aviso) {
     if (btn) btn.disabled = true;
-    guardarCambio(u.serial, function (x) { x.estado = estado; return 'QR ' + x.numero + ': ' + (estado === 'pausado' ? 'pausado' : 'reactivado'); });
+    guardarCambio(u.serial, function (x) { x.estado = estado; return 'QR ' + x.numero + ': ' + (estado === 'pausado' ? 'pausado' : 'reactivado'); },
+      aviso, function () { if (btn) btn.disabled = false; });
   }
-  function guardarCambio(serial, fn) {
-    msg('msg-nuevo', 'Guardando en GitHub…', 'aviso');
+  /** Guarda un cambio de un QR existente. Muestra el resultado en su tarjeta (aviso). */
+  function guardarCambio(serial, fn, aviso, alTerminar) {
+    var donde = aviso || $('msg-nuevo');
+    avisar(donde, 'Guardando en GitHub…', 'aviso');
     transaction(function (reg) {
       var x = reg.unidades.filter(function (y) { return y.serial === serial; })[0];
       if (!x) throw new Error('No se encontró el QR.');
       if (x.estado === 'baja') throw new Error('Ese QR está dado de baja.');
       return { unit: x, message: fn(x) };
     }).then(function (u) {
+      renderLista();
+      var nueva = document.querySelector('.qr-item[data-numero="' + u.numero + '"] .msg');
+      if (nueva) avisar(nueva, 'Guardado: QR N° ' + u.numero + '. En 1 o 2 minutos el plástico lleva al link nuevo.', 'ok');
       msg('msg-nuevo', 'Guardado: QR N° ' + u.numero + '.', 'ok');
-      renderLista(); verResultado(u, true);
-    }).catch(function (e) { msg('msg-nuevo', e.message, 'error'); });
+      verResultado(u, true, true);
+    }).catch(function (e) { avisar(donde, e.message, 'error'); })
+      .then(function () { if (alTerminar) alTerminar(); });
   }
 
   function conectar() {
@@ -427,6 +480,13 @@
 
   function init() {
     $('generar').addEventListener('click', generar);
+    $('buscar').addEventListener('input', function () { if (state.reg) renderLista(); });
+    $('res-cambiar').addEventListener('click', function () {
+      var u = state.current; if (!u) return;
+      $('buscar').value = ''; renderLista();
+      var f = document.querySelector('.qr-item[data-numero="' + u.numero + '"] .qr-form');
+      if (f) abrirForm(f);
+    });
     $('guardar-token').addEventListener('click', conectar);
     $('bajar-png').addEventListener('click', bajarPng);
     $('bajar-pdf').addEventListener('click', function (e) {
