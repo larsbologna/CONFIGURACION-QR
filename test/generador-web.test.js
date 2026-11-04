@@ -112,6 +112,10 @@ test('generador web: asigna QR libres, crea nuevos, cambia links sin cambiar el 
   await page.waitForSelector('#conectar:not(.hidden)');
   assert.equal(await page.locator('#filas .qr-item').count(), 3, 'muestra los 3 QR existentes');
 
+  // Sin llave: "Cambiar link" se ve igual y lleva a conectar
+  await page.locator('#filas .qr-item').first().getByRole('button', { name: /link/ }).click();
+  await page.waitForFunction(() => /conectalo a GitHub/.test(document.getElementById('msg-conectar').textContent));
+
   // Llave inválida y luego válida
   await page.fill('#token', 'github_pat_MALA');
   await page.click('#guardar-token');

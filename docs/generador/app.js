@@ -76,7 +76,7 @@
       body: body ? JSON.stringify(body) : undefined,
       cache: 'no-store',
     }).then(function (r) {
-      if (r.status === 401) throw new Error('La llave de GitHub no es válida o venció. Tocá "Desconectar esta compu" y conectá una nueva.');
+      if (r.status === 401) throw new Error('La llave de GitHub no es válida o venció. Tocá "Desconectar este dispositivo" (abajo de todo) y conectá una nueva.');
       if (r.status === 403 || r.status === 404) {
         return r.text().then(function (t) {
           var e = new Error('GitHub rechazó la operación. Revisá que la llave tenga acceso al repositorio ' + state.repo.name + ' con permiso "Contents: Read and write". (' + r.status + ')');
@@ -334,7 +334,8 @@
         ? el('a', { href: u.destino_url, target: '_blank', rel: 'noopener noreferrer', text: u.destino_url })
         : el('span', { class: 'ayuda', text: 'Sin link todavía' })]),
       el('div', { class: 'qr-acciones' }, [
-        form ? el('button', { class: 'primario', text: u.destino_url ? 'Cambiar link' : 'Ponerle link', onclick: function () { abrirForm(form); } }) : null,
+        form ? el('button', { class: 'primario', text: u.destino_url ? 'Cambiar link' : 'Ponerle link', onclick: function () { abrirForm(form); } })
+          : !conectado && u.estado !== 'baja' ? el('button', { class: 'primario', text: u.destino_url ? 'Cambiar link' : 'Ponerle link', onclick: pedirConexion }) : null,
         el('button', { text: 'Ver diseño', onclick: function () { verResultado(u, false); } }),
         conectado && u.estado === 'activo' ? el('button', { text: 'Pausar', onclick: function (e) { cambiarEstado(u, 'pausado', e.target, aviso); } }) : null,
         conectado && u.estado === 'pausado' ? el('button', { text: 'Reactivar', onclick: function (e) { cambiarEstado(u, 'activo', e.target, aviso); } }) : null,
@@ -343,6 +344,14 @@
       form, aviso,
     ]);
     return item;
+  }
+
+  /** Sin llave en este navegador: lleva al recuadro para conectar GitHub. */
+  function pedirConexion() {
+    show('conectar', true);
+    msg('msg-conectar', 'Para cambiar links desde este dispositivo, conectalo a GitHub una sola vez: pegá tu llave abajo (podés usar la misma que en la compu).', 'aviso');
+    $('conectar').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(function () { $('token').focus(); }, 400);
   }
 
   function abrirForm(form) {
