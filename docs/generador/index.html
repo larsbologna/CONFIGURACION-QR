@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17202f">
 <meta name="robots" content="noindex">
 <title>Generador de QR</title>
 <link rel="stylesheet" href="estilo.css">
@@ -46,6 +47,7 @@
         <div class="col">
           <button id="bajar-pdf" class="primario">Descargar PDF para el local (10 × 15 cm)</button>
           <button id="bajar-png">Descargar imagen PNG</button>
+          <button id="res-cambiar" class="hidden">Cambiar link de este QR</button>
           <a id="probar-qr" class="boton" target="_blank" rel="noopener">Probar el QR (abre la dirección del QR)</a>
         </div>
         <p class="ayuda">El QR impreso no cambia nunca. Si después cambiás el link, este mismo plástico pasa a llevar al link nuevo.</p>
@@ -55,8 +57,9 @@
 
   <section id="lista" class="card">
     <h2>Mis QR</h2>
+    <input id="buscar" type="search" placeholder="Buscar por número, negocio o link" aria-label="Buscar QR">
     <p id="msg-lista" class="ayuda">Cargando…</p>
-    <div class="tabla"><table><thead><tr><th>N°</th><th>Negocio</th><th>Lleva a</th><th>Estado</th><th></th></tr></thead><tbody id="filas"></tbody></table></div>
+    <div id="filas" class="qr-lista"></div>
   </section>
 </main>
 <footer><button id="desconectar" class="chico hidden">Desconectar esta compu</button></footer>

@@ -26,15 +26,37 @@ button.chico, .boton.chico { padding: 4px 10px; font-size: 14px; }
 @media (max-width: 640px) { .resultado { grid-template-columns: 1fr; } }
 canvas { width: 100%; height: auto; border: 1px solid var(--line); background: #fff; }
 .publicacion { font-size: 14px; }
-.tabla { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 15px; }
-th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: 12px; text-transform: uppercase; color: var(--muted); }
-td.link { word-break: break-all; font-size: 13px; max-width: 320px; }
-td.acciones { white-space: nowrap; }
-td.acciones > * { margin: 0 4px 4px 0; }
 .estado { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: #eef1f6; white-space: nowrap; }
 .estado.activo { background: var(--ok-bg); color: var(--ok); }
 .estado.pausado { background: var(--warn-bg); color: var(--warn); }
 .numero { font-weight: 700; font-variant-numeric: tabular-nums; }
 code { background: #eef1f6; padding: 1px 5px; border-radius: 4px; }
+
+/* Lista de QR en tarjetas */
+#buscar { margin: 4px 0 6px; }
+.qr-lista { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.qr-item { border: 1px solid var(--line); border-radius: 10px; padding: 14px; background: #fff; min-width: 0; }
+.qr-cab { display: flex; align-items: center; gap: 10px; }
+.qr-cab .numero { font-size: 22px; }
+.qr-cab .negocio { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qr-link { margin: 8px 0 12px; font-size: 14px; overflow-wrap: anywhere; }
+.qr-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.qr-acciones > * { flex: 1 1 auto; min-height: 44px; }
+.qr-form { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.qr-form .qr-acciones { margin-top: 10px; }
+.qr-item .msg { margin: 10px 0 0; font-size: 14px; }
+
+/* Celular */
+@media (max-width: 640px) {
+  main { padding: 10px; }
+  .card { padding: 14px; border-radius: 12px; }
+  header { padding: 10px 14px; }
+  header span { width: 100%; }
+  h2 { font-size: 18px; }
+  .qr-lista { grid-template-columns: 1fr; }
+  .fila > * { flex: 1 1 100%; }
+  button, .boton { min-height: 46px; }
+  canvas { max-width: 340px; margin: 0 auto; display: block; }
+  ol { padding-left: 20px; }
+}
+input, button, .boton { font-size: 16px; }
