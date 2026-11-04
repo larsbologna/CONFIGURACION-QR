@@ -109,6 +109,14 @@ function publishStatic(db, config, { storeImageSync } = {}) {
   }
   // Archivos de apoyo del generador web (copias: el original está en src/ y assets/).
   w(path.join('generador', 'pagina-qr.js'), fs.readFileSync(SHARED_FILE));
+  // Marcas de versión (?v=) del generador: si un archivo cambió, los celulares bajan el nuevo.
+  const genIndex = path.join(dir, 'generador', 'index.html');
+  if (fs.existsSync(genIndex)) {
+    const { stamp } = require('../../scripts/version-generador');
+    const html = fs.readFileSync(genIndex, 'utf8');
+    const next = stamp(html, path.join(dir, 'generador'));
+    if (next !== html) { fs.writeFileSync(genIndex, next); changed++; }
+  }
   w(path.join('generador', 'fuente-numeros.ttf'), fs.readFileSync(FONT_FILE));
   const reg = registry(db, config);
   for (const d of reg.disenos) {
